@@ -1,3 +1,5 @@
+package com.segerend
+
 import kotlin.system.exitProcess
 import kotlin.random.Random
 
