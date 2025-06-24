@@ -23,18 +23,6 @@ class MainApp : Application() {
 fun main() {
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
         System.setProperty("apple.awt.application.name", "SegerEnd App")
-
-//        try {
-//            val appClass = Class.forName("com.apple.eawt.Application")
-//            val getAppMethod = appClass.getMethod("getApplication")
-//            val setIconMethod = appClass.getMethod("setDockIconImage", java.awt.Image::class.java)
-//
-//            val app = getAppMethod.invoke(null)
-//            val icon = java.awt.Toolkit.getDefaultToolkit().getImage("src/main/resources/icon.png")
-//            setIconMethod.invoke(app, icon)
-//        } catch (e: Exception) {
-//            println("Could not set macOS Dock icon: ${e.message}")
-//        }
     }
 
     Application.launch(MainApp::class.java)
