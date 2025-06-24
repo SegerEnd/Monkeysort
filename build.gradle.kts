@@ -6,9 +6,10 @@ plugins {
 
 application {
     mainClass.set("com.segerend.MainKt")
-    applicationDefaultJvmArgs = listOf(
-        "-Xdock:name=SegerEnd App"
-    )
+    val osName = System.getProperty("os.name").lowercase()
+    if (osName.contains("mac")) {
+        applicationDefaultJvmArgs = listOf("-Xdock:name=SegerEnd App")
+    }
 }
 
 group = "org.segerend"
