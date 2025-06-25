@@ -126,15 +126,44 @@ class PartialShuffleStrategy : ShuffleStrategy() {
 // --- Monkey class: responsible for shuffling ---
 
 class Monkey(
-    val id: Int,
-    var shuffleStrategy: ShuffleStrategy = FullShuffleStrategy()
+    val id: Int
 ) {
-    // Simulate shuffle animation frames here if you want, for now we just shuffle instantly
+    var currentTask: ShuffleTask? = null
+    private var progress: Double = 0.0
+    private val speedPerTick = 0.01  // Adjust this for speed of movement
 
-    fun shuffle(grid: GridModel) {
-        shuffleStrategy.shuffle(grid)
+    fun assignTask(task: ShuffleTask) {
+        currentTask = task
+        progress = 0.0
+    }
+
+    fun updateAndAct(grid: GridModel) {
+        val task = currentTask ?: return
+
+        progress += speedPerTick
+        if (progress >= 1.0) {
+            // Reached destination, perform the swap
+            grid.swap(task.from, task.to)
+            currentTask = null
+        }
+    }
+
+    fun isIdle(): Boolean = currentTask == null
+
+    fun getDrawPosition(cellSize: Double): Pair<Double, Double>? {
+        val task = currentTask ?: return null
+        val x0 = task.from.col * cellSize
+        val y0 = task.from.row * cellSize
+        val x1 = task.to.col * cellSize
+        val y1 = task.to.row * cellSize
+
+        val x = x0 + (x1 - x0) * progress
+        val y = y0 + (y1 - y0) * progress
+        return Pair(x, y)
     }
 }
+
+data class ShuffleTask(val from: Pos, val to: Pos)
 
 // --- Game Controller: Manages game state, coins, upgrades, monkeys, game loop ---
 
@@ -153,20 +182,24 @@ class GameController(
     var useSmarterShuffle = false
 
     fun tick(currentTimeMillis: Long) {
-        if (currentTimeMillis - lastShuffleTime >= shuffleIntervalMillis) {
-            // Shuffle with all monkeys (for speed, call shuffle multiple times per tick)
-            monkeys.forEach { it.shuffleStrategy = if (useSmarterShuffle) PartialShuffleStrategy() else FullShuffleStrategy() }
-            repeat(monkeys.size) {
-                monkeys[it].shuffle(gridModel)
+        // Assign tasks if monkey is idle
+        for (monkey in monkeys) {
+            if (monkey.isIdle()) {
+                val from = Pos(Random.nextInt(gridModel.rows), Random.nextInt(gridModel.cols))
+                val to = Pos(Random.nextInt(gridModel.rows), Random.nextInt(gridModel.cols))
+                if (from != to) {
+                    monkey.assignTask(ShuffleTask(from, to))
+                }
             }
+        }
 
-            lastShuffleTime = currentTimeMillis
+        // Update monkey animations and apply swaps
+        monkeys.forEach { it.updateAndAct(gridModel) }
 
-            // After shuffle: check combos and award coins
-            val combos = gridModel.detectCombos()
-            if (combos.isNotEmpty()) {
-                coins += combos.size // 1 coin per fruit in combos (simple)
-            }
+        // Coin reward if combos
+        val combos = gridModel.detectCombos()
+        if (combos.isNotEmpty()) {
+            coins += combos.size
         }
     }
 
@@ -197,7 +230,7 @@ class GameController(
         val cost = 20 * monkeys.size // cost grows with number of monkeys
         if (coins >= cost) {
             coins -= cost
-            monkeys.add(Monkey(monkeys.size + 1, if (useSmarterShuffle) PartialShuffleStrategy() else FullShuffleStrategy()))
+            monkeys.add(Monkey(monkeys.size + 1))
             return true
         }
         return false
@@ -279,6 +312,13 @@ class MonkeySortSimulatorApp : Application() {
 
                 gc.fill = Color.BLACK
                 gc.fillText(fruit.emoji, x + cellSize * 0.1, y + cellSize * 0.8)
+            }
+        }
+
+        controller.monkeys.forEach { monkey ->
+            monkey.getDrawPosition(cellSize)?.let { (x, y) ->
+                gc.font = Font.font(cellSize * 0.9)
+                gc.fillText("🐒", x, y + cellSize * 0.8)
             }
         }
 
