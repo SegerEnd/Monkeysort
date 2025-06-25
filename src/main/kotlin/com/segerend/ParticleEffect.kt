@@ -126,3 +126,41 @@ class ComboParticleEffect(
         particles.forEach { it.render(gc) }
     }
 }
+
+class CompletionParticleEffect(
+    private val centerX: Double,
+    private val centerY: Double,
+    durationMs: Long = 2000L
+) : ParticleEffect(durationMs) {
+
+    private val particles = mutableListOf<Particle>()
+
+    init {
+        repeat(100) {
+            particles += createRandomParticle(centerX, centerY, durationMs)
+        }
+    }
+
+    private fun createRandomParticle(x: Double, y: Double, lifetime: Long): Particle {
+        val angle = Random.nextDouble(0.0, 2 * PI)
+        val speed = Random.nextDouble(1.0, 3.0)
+        return Particle(
+            x = x,
+            y = y,
+            dx = cos(angle) * speed,
+            dy = sin(angle) * speed - 1.0,
+            size = Random.nextDouble(5.0, 15.0),
+            lifetime = lifetime,
+            baseColor = Color.rgb(Random.nextInt(256), Random.nextInt(256), Random.nextInt(256))
+        )
+    }
+
+    override fun onUpdate(deltaMs: Long) {
+        particles.forEach { it.update(deltaMs) }
+        particles.removeAll { !it.isAlive }
+    }
+
+    override fun render(gc: GraphicsContext, cellSize: Double) {
+        particles.forEach { it.render(gc) }
+    }
+}

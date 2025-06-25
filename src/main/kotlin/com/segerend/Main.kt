@@ -377,12 +377,34 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    // add a debug button to make from all monkeys BogoSort
+    private val debugBogoButton = Button("Debug: Set All to BogoSort").apply {
+        setOnAction {
+            controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
+            println("All monkeys set to BogoSort")
+        }
+    }
+    // debug button to make all monkeys BubbleSort
+    private val debugBubbleButton = Button("Debug: Set All to BubbleSort").apply {
+        setOnAction {
+            controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+            println("All monkeys set to BubbleSort")
+        }
+    }
+    // debug button to spawn 50 new monkeys
+    private val debugSpawnButton = Button("Debug: Spawn 50 Monkeys").apply {
+        setOnAction {
+            repeat(50) { controller.buyMonkey() }
+            println("Spawned 50 new monkeys")
+        }
+    }
+
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton)
         root.center = canvas
 
         val scene = Scene(root)
