@@ -184,7 +184,7 @@ class Monkey(val id: Int) {
     private var state = State.IDLE
     var task: ShuffleTask? = null
     private var progress = 0.0
-    private val speedPerTick = 0.03
+    private var speedPerTick = 0.03
 
     private var startX = 0.0
     private var startY = 0.0
@@ -195,6 +195,13 @@ class Monkey(val id: Int) {
 
     // Sorting algorithm
     var algorithm: SortAlgorithm = SortAlgorithm.BOGO
+        set(value) {
+            field = value
+            speedPerTick = when (value) {
+                SortAlgorithm.BOGO -> 0.03
+                SortAlgorithm.BUBBLE -> 0.07 // Faster monkey speed for BubbleSort
+            }
+        }
 
     fun assignTask(newTask: ShuffleTask, cellSize: Double): Boolean {
         if (!LockManager.tryLock(newTask.from, newTask.to)) return false
