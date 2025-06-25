@@ -22,6 +22,8 @@ enum class Fruit(val emoji: String) {
     ORANGE("🍊"),
     WATERMELON("🍉"),
     PINEAPPLE("🍍"),
+    STRAWBERRY("🍓"),
+    CHERRY("🍒"),
     EMPTY(" ");
 
     companion object {
