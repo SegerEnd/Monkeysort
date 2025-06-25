@@ -160,13 +160,31 @@ class GridModel(val rows: Int, val cols: Int) {
 
 // --- Monkey Logic ---
 
+// Shared Lock Manager
+object LockManager {
+    private val lockedPositions = mutableSetOf<Pos>()
+
+    @Synchronized
+    fun tryLock(vararg positions: Pos): Boolean {
+        if (positions.any { it in lockedPositions }) return false
+        lockedPositions.addAll(positions)
+        return true
+    }
+
+    @Synchronized
+    fun unlock(vararg positions: Pos) {
+        lockedPositions.removeAll(positions.toSet())
+    }
+}
+
+// Updated Monkey class with proper locking and task state
 class Monkey(val id: Int) {
-    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING }
+    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING, RETURNING }
 
     private var state = State.IDLE
     var task: ShuffleTask? = null
     private var progress = 0.0
-    private val speedPerTick = 0.01
+    private val speedPerTick = 10.01
 
     private var startX = 0.0
     private var startY = 0.0
@@ -174,23 +192,24 @@ class Monkey(val id: Int) {
     private var endY = 0.0
 
     private var fruitBeingCarried: Fruit? = null
-    private var fruitToSwapBack: Fruit? = null
 
-    // Track sorting algorithm
+    // Sorting algorithm
     var algorithm: SortAlgorithm = SortAlgorithm.BOGO
-    var nextCheckIndex = 0
 
-    fun assignTask(newTask: ShuffleTask, cellSize: Double) {
+    fun assignTask(newTask: ShuffleTask, cellSize: Double): Boolean {
+        if (!LockManager.tryLock(newTask.from, newTask.to)) return false
+
         task = newTask
         fruitBeingCarried = null
-
         val from = newTask.from
+
         startX = endX
         startY = endY
         endX = from.col * cellSize
         endY = from.row * cellSize
         progress = 0.0
         state = State.MOVING_TO_SOURCE
+        return true
     }
 
     fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
@@ -200,18 +219,13 @@ class Monkey(val id: Int) {
         if (progress >= 1.0) {
             progress = 0.0
 
+            val from = task!!.from
+            val to = task!!.to
+
             when (state) {
                 State.MOVING_TO_SOURCE -> {
-                    val from = task!!.from
-                    val to = task!!.to
-
                     fruitBeingCarried = grid.get(from)
-                    fruitToSwapBack = grid.get(to)
-
-                    // Only remove fruit if destination isn't empty
-                    if (fruitToSwapBack != Fruit.EMPTY) {
-                        grid.set(from, fruitToSwapBack!!)
-                    }
+                    grid.set(from, Fruit.EMPTY)
 
                     startX = from.col * cellSize
                     startY = from.row * cellSize
@@ -221,15 +235,15 @@ class Monkey(val id: Int) {
                 }
 
                 State.CARRYING -> {
-                    val to = task!!.to
-                    val from = task!!.from
-
+                    val oldFruit = grid.get(to)
                     grid.set(to, fruitBeingCarried!!)
+                    fruitBeingCarried = oldFruit
 
-                    // Only restore if source was empty
-                    if (grid.get(from) == Fruit.EMPTY) {
-                        grid.set(from, fruitToSwapBack!!)
-                    }
+                    startX = to.col * cellSize
+                    startY = to.row * cellSize
+                    endX = from.col * cellSize
+                    endY = from.row * cellSize
+                    state = State.RETURNING
 
                     val comboCount = grid.comboAt(to)
                     if (comboCount >= 2) {
@@ -239,9 +253,12 @@ class Monkey(val id: Int) {
                             particleSystem.add(ComboParticleEffect(comboPositions, 24.0))
                         }
                     }
+                }
 
+                State.RETURNING -> {
+                    grid.set(from, fruitBeingCarried!!)
                     fruitBeingCarried = null
-                    fruitToSwapBack = null
+                    LockManager.unlock(from, to)
                     task = null
                     state = State.IDLE
                 }
@@ -273,9 +290,8 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
     private var lastTickTime = System.nanoTime()
 
     // Track grid state for bubble sort
+    private var bubbleSortIndex = 0
     private var bubbleSortPass = 0
-    private var bubbleSortRow = 0
-    private var bubbleSortCol = 0
 
     fun tick() {
         val now = System.nanoTime()
@@ -295,6 +311,40 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
         particleSystem.update(deltaMs)
     }
 
+    private fun assignBubbleTask(monkey: Monkey) {
+        val totalCells = rows * cols
+
+        while (true) {
+            if (bubbleSortIndex >= totalCells - 1 - bubbleSortPass) {
+                // End of pass, start next pass
+                bubbleSortIndex = 0
+                bubbleSortPass++
+                if (bubbleSortPass >= totalCells - 1) {
+                    // Fully sorted!
+                    bubbleSortPass = 0
+                }
+                return
+            }
+
+            val indexA = bubbleSortIndex
+            val indexB = bubbleSortIndex + 1
+
+            // Convert to (row, col)
+            val from = Pos(indexA / cols, indexA % cols)
+            val to = Pos(indexB / cols, indexB % cols)
+
+            val fruitA = gridModel.get(from)
+            val fruitB = gridModel.get(to)
+
+            bubbleSortIndex++
+
+            if (fruitA.name > fruitB.name) {
+                monkey.assignTask(ShuffleTask(from, to, fruitA), cellSize = 24.0)
+                return
+            }
+        }
+    }
+
     private fun assignRandomTask(monkey: Monkey) {
         val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
         var to: Pos
@@ -304,32 +354,6 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
 
         val fruit = gridModel.get(from)
         monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = 24.0)
-    }
-
-    private fun assignBubbleTask(monkey: Monkey) {
-        val row = bubbleSortRow
-
-        while (true) {
-            if (bubbleSortCol >= cols - 1) {
-                bubbleSortCol = 0
-                bubbleSortRow = (bubbleSortRow + 1) % rows
-                return
-            }
-
-            val col = bubbleSortCol
-            val from = Pos(row, col)
-            val to = Pos(row, col + 1)
-
-            bubbleSortCol++
-
-            val fruitA = gridModel.get(from)
-            val fruitB = gridModel.get(to)
-
-            if (fruitA.name > fruitB.name) {
-                monkey.assignTask(ShuffleTask(from, to, fruitA), cellSize = 24.0)
-                return
-            }
-        }
     }
 
     fun buyMonkey(): Boolean {
