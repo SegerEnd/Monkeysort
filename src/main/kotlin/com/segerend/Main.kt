@@ -1,4 +1,5 @@
 package com.segerend
+
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.scene.Scene
@@ -19,10 +20,16 @@ enum class Fruit(val emoji: String) {
     BANANA("🍌"),
     GRAPE("🍇"),
     ORANGE("🍊"),
-    WATERMELON("🍉");
+    WATERMELON("🍉"),
+    PINEAPPLE("🍍"),
+    EMPTY(" ");
 
     companion object {
-        fun random() = values()[Random.nextInt(values().size)]
+//        fun random() = values()[Random.nextInt(values().size)]
+        fun random(): Fruit {
+            val fruits = values().filter { it != EMPTY }
+            return fruits[Random.nextInt(fruits.size)]
+        }
     }
 }
 
@@ -45,26 +52,66 @@ class GridModel(val rows: Int, val cols: Int) {
             var count = 1
             for (c in 1 until cols) {
                 if (grid[r][c] == grid[r][c - 1]) count++ else count = 1
-                if (count >= 3) for (cc in c downTo c - 2) combos.add(Pos(r, cc))
+                if (count >= 8) for (cc in c downTo c - 2) combos.add(Pos(r, cc))
             }
         }
         for (c in 0 until cols) {
             var count = 1
             for (r in 1 until rows) {
                 if (grid[r][c] == grid[r - 1][c]) count++ else count = 1
-                if (count >= 3) for (rr in r downTo r - 2) combos.add(Pos(rr, c))
+                if (count >= 8) for (rr in r downTo r - 2) combos.add(Pos(rr, c))
             }
         }
         return combos.toList()
     }
 
-    fun swap(pos1: Pos, pos2: Pos) {
-        val temp = grid[pos1.row][pos1.col]
-        grid[pos1.row][pos1.col] = grid[pos2.row][pos2.col]
-        grid[pos2.row][pos2.col] = temp
+    fun comboAt(pos: Pos): Int {
+        val fruit = get(pos)
+        if (fruit == Fruit.EMPTY) return 0
+
+        var totalMatches = 1 // Count this cell
+
+        // Horizontal check
+        var left = pos.col - 1
+        while (left >= 0 && get(Pos(pos.row, left)) == fruit) {
+            totalMatches++
+            left--
+        }
+        var right = pos.col + 1
+        while (right < cols && get(Pos(pos.row, right)) == fruit) {
+            totalMatches++
+            right++
+        }
+        if (totalMatches >= 3) return totalMatches
+
+        // Vertical check
+        totalMatches = 1
+        var up = pos.row - 1
+        while (up >= 0 && get(Pos(up, pos.col)) == fruit) {
+            totalMatches++
+            up--
+        }
+        var down = pos.row + 1
+        while (down < rows && get(Pos(down, pos.col)) == fruit) {
+            totalMatches++
+            down++
+        }
+        if (totalMatches >= 3) return totalMatches
+
+        return 0
     }
 
     fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
+
+    fun set(pos: Pos, fruit: Fruit) {
+        grid[pos.row][pos.col] = fruit
+    }
+
+    fun swap(a: Pos, b: Pos) {
+        val tmp = grid[a.row][a.col]
+        grid[a.row][a.col] = grid[b.row][b.col]
+        grid[b.row][b.col] = tmp
+    }
 }
 
 // --- Monkey Logic ---
@@ -83,13 +130,14 @@ class Monkey(val id: Int) {
     private var endY = 0.0
 
     private var fruitBeingCarried: Fruit? = null
+    private var fruitToSwapBack: Fruit? = null
 
     fun assignTask(newTask: ShuffleTask, cellSize: Double) {
         task = newTask
         fruitBeingCarried = null
 
-        // Phase 1: Walk to source
         val from = newTask.from
+        // Align monkey exactly on grid
         startX = endX
         startY = endY
         endX = from.col * cellSize
@@ -107,27 +155,42 @@ class Monkey(val id: Int) {
 
             when (state) {
                 State.MOVING_TO_SOURCE -> {
-                    // Arrived at source; now go to destination carrying fruit
+                    val from = task!!.from
                     val to = task!!.to
-                    startX = endX
-                    startY = endY
+
+                    // Pick up fruit from 'from', and store destination fruit
+                    fruitBeingCarried = grid.get(from)
+                    fruitToSwapBack = grid.get(to)
+                    grid.set(from, Fruit.EMPTY) // Leave empty
+
+                    // Move to 'to'
+                    startX = from.col * cellSize
+                    startY = from.row * cellSize
                     endX = to.col * cellSize
                     endY = to.row * cellSize
-                    fruitBeingCarried = task!!.fruit
                     state = State.CARRYING
                 }
 
                 State.CARRYING -> {
-                    // Arrived at destination; swap and finish
-                    grid.swap(task!!.from, task!!.to)
+                    val to = task!!.to
+                    val from = task!!.from
+
+                    grid.set(to, fruitBeingCarried!!)
+                    grid.set(from, fruitToSwapBack!!)
+
+                    // Check combos only on 'to' cell
+                    val comboCount = grid.comboAt(to)
+                    if (comboCount >= 3) {
+                        GameStats.coins += comboCount * 10
+                    }
+
                     fruitBeingCarried = null
+                    fruitToSwapBack = null
                     task = null
                     state = State.IDLE
-
-                    // Monkey remains at the destination
                 }
 
-                State.IDLE -> {}
+                else -> {}
             }
         }
     }
@@ -150,7 +213,6 @@ class Monkey(val id: Int) {
 class GameController(val rows: Int = 25, val cols: Int = 25) {
     val gridModel = GridModel(rows, cols)
     val monkeys = mutableListOf(Monkey(1))
-    var coins = 0
 
     fun tick() {
         for (monkey in monkeys) {
@@ -169,13 +231,13 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
         monkeys.forEach { it.update(gridModel, cellSize = 24.0) }
 
         val combos = gridModel.detectCombos()
-        if (combos.isNotEmpty()) coins += combos.size
+        if (combos.isNotEmpty()) GameStats.coins += combos.size
     }
 
     fun buyMonkey(): Boolean {
         val cost = 200 * monkeys.size
-        if (coins >= cost) {
-            coins -= cost
+        if (GameStats.coins >= cost) {
+            GameStats.coins -= cost
             monkeys.add(Monkey(monkeys.size + 1))
             return true
         }
@@ -250,7 +312,7 @@ class MonkeySortSimulatorApp : Application() {
         // Draw UI info
         gc.fill = Color.DARKGREEN
         gc.font = Font.font(16.0)
-        gc.fillText("Coins: ${controller.coins}", 10.0, gc.canvas.height - 5)
+        gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
     }
 }
