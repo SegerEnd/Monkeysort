@@ -255,17 +255,18 @@ class MonkeySortSimulatorApp : Application() {
 
     private val controller = GameController(rows, cols)
 
+    private val buyButton = Button("Buy Monkey").apply {
+        setOnAction {
+            if (!controller.buyMonkey()) println("Not enough coins!")
+        }
+    }
+
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        val buyBtn = Button("Buy Monkey (200 * Monkeys)")
-        buyBtn.setOnAction {
-            if (!controller.buyMonkey()) println("Not enough coins!")
-        }
-
-        root.bottom = HBox(10.0, buyBtn)
+        root.bottom = HBox(10.0, buyButton)
         root.center = canvas
 
         val scene = Scene(root)
@@ -314,6 +315,10 @@ class MonkeySortSimulatorApp : Application() {
         gc.font = Font.font(16.0)
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
+
+        // Update button state
+        buyButton.isDisable = GameStats.coins < 200 * controller.monkeys.size
+        buyButton.text = "Buy Monkey (${200 * controller.monkeys.size} coins)"
     }
 }
 
