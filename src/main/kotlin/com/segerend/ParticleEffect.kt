@@ -88,7 +88,7 @@ class ComboParticleEffect(
 
     // Determine color based on combo size
     private val baseColor: Color = when {
-        comboCells.size <= 3 -> Color.GOLD
+        comboCells.size <= 3 -> Color.ORANGE
         comboCells.size <= 5 -> Color.DEEPSKYBLUE
         else -> Color.HOTPINK
     }

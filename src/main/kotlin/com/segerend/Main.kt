@@ -184,7 +184,7 @@ class Monkey(val id: Int) {
     private var state = State.IDLE
     var task: ShuffleTask? = null
     private var progress = 0.0
-    private val speedPerTick = 10.01
+    private val speedPerTick = 0.03
 
     private var startX = 0.0
     private var startY = 0.0
@@ -215,7 +215,7 @@ class Monkey(val id: Int) {
     fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
         if (task == null) return
 
-        progress += speedPerTick
+        progress += speedPerTick * GameStats.timeFactor
         if (progress >= 1.0) {
             progress = 0.0
 
@@ -418,8 +418,21 @@ class MonkeySortSimulatorApp : Application() {
     // debug button to spawn 50 new monkeys
     private val debugSpawnButton = Button("Debug: Spawn 50 Monkeys").apply {
         setOnAction {
-            repeat(50) { controller.buyMonkey() }
+            repeat(50) {
+                controller.monkeys.add(Monkey(controller.monkeys.size + 1).apply {
+                    algorithm = SortAlgorithm.BOGO
+                })
+            }
             println("Spawned 50 new monkeys")
+        }
+    }
+
+    // Debug button to set the speed of the game to 10x
+    private val debugSpeedButton = Button("Debug: Speed x15").apply {
+        setOnAction {
+            // toggle the speed factor
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 15.0 else 1.0
+            println("Game speed set to x15")
         }
     }
 
@@ -428,7 +441,7 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton, debugSpeedButton)
         root.center = canvas
 
         val scene = Scene(root)
