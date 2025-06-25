@@ -95,14 +95,10 @@ tasks.register<Exec>("packageApp") {
                 // Optionally add icon for macOS
             )
         }
-        osName.contains("windows") -> {
-            commonArgs += listOf(
-                "--win-console",  // Optional: show console window
-                "--win-dir-chooser",
-                "--win-per-user-install"
-                // Optionally add icon for Windows
-            )
-        }
+//        osName.contains("windows") -> {
+//            commonArgs += listOf(
+//            )
+//        }
     }
 
     commandLine(commonArgs)

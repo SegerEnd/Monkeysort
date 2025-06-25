@@ -436,6 +436,16 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    fun emojiCompatibleFont(size: Double): Font {
+        val os = System.getProperty("os.name").lowercase()
+
+        if (os.contains("win")) {
+            return Font.font("Segoe UI Emoji", size)
+        } else {
+            return Font.font(size)
+        }
+    }
+
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
@@ -461,9 +471,12 @@ class MonkeySortSimulatorApp : Application() {
         gc.fill = Color.BEIGE
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
+        // Set fill color for visibility of emojis and text
+        gc.fill = Color.OLIVEDRAB
+
         val grid = controller.gridModel.getGridCopy()
 
-        gc.font = Font.font(cellSize * 0.75)
+        gc.font = emojiCompatibleFont(cellSize * 0.75)
 
         for (r in 0 until rows) {
             for (c in 0 until cols) {
@@ -474,7 +487,7 @@ class MonkeySortSimulatorApp : Application() {
             }
         }
 
-        gc.font = Font.font(cellSize * 0.95)
+        gc.font = emojiCompatibleFont(cellSize * 0.95)
 
         // Draw monkeys with algorithm indicator
         for (monkey in controller.monkeys) {
@@ -482,12 +495,15 @@ class MonkeySortSimulatorApp : Application() {
             val (x, y) = pos
             val fruit = monkey.getCarriedFruit()
             if (fruit != null) {
+                gc.fill = Color.OLIVEDRAB
                 gc.fillText(fruit.emoji, x + 2, y - 2)
             }
+            gc.fill = Color.CHOCOLATE
+
             gc.fillText("🐒", x + 2, y + cellSize * 0.55)
 
             // Draw algorithm indicator
-            gc.font = Font.font(10.0)
+            gc.font = emojiCompatibleFont(10.0)
             gc.fillText(
                 when (monkey.algorithm) {
                     SortAlgorithm.BOGO -> "Bogo"
@@ -496,7 +512,7 @@ class MonkeySortSimulatorApp : Application() {
                 x + 5,
                 y + cellSize * 0.55 - 15
             )
-            gc.font = Font.font(cellSize * 0.75)
+            gc.font = emojiCompatibleFont(cellSize * 0.75)
         }
 
         // Render particle effects
@@ -504,7 +520,7 @@ class MonkeySortSimulatorApp : Application() {
 
         // Draw UI info
         gc.fill = Color.DARKGREEN
-        gc.font = Font.font(16.0)
+        gc.font = emojiCompatibleFont(16.0)
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
         gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}",
@@ -518,7 +534,7 @@ class MonkeySortSimulatorApp : Application() {
         // Show completion message
         if (controller.gridModel.isSorted()) {
             gc.fill = Color.RED
-            gc.font = Font.font(48.0)
+            gc.font = emojiCompatibleFont(48.0)
             gc.fillText("Completed!", gc.canvas.width / 2 - 120, gc.canvas.height / 2)
         }
     }
