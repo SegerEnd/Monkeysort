@@ -33,7 +33,6 @@ enum class Fruit(val emoji: String) {
     EMPTY(" ");
 
     companion object {
-//        fun random() = values()[Random.nextInt(values().size)]
         fun random(): Fruit {
             val fruits = values().filter { it != EMPTY }
             return fruits[Random.nextInt(fruits.size)]
@@ -43,6 +42,11 @@ enum class Fruit(val emoji: String) {
 
 data class Pos(val row: Int, val col: Int)
 data class ShuffleTask(val from: Pos, val to: Pos, val fruit: Fruit)
+
+enum class SortAlgorithm {
+    BOGO,
+    BUBBLE
+}
 
 class GridModel(val rows: Int, val cols: Int) {
     private val grid = Array(rows) { Array(cols) { Fruit.random() } }
@@ -160,7 +164,7 @@ class Monkey(val id: Int) {
     enum class State { IDLE, MOVING_TO_SOURCE, CARRYING }
 
     private var state = State.IDLE
-    private var task: ShuffleTask? = null
+    var task: ShuffleTask? = null
     private var progress = 0.0
     private val speedPerTick = 0.01
 
@@ -172,12 +176,15 @@ class Monkey(val id: Int) {
     private var fruitBeingCarried: Fruit? = null
     private var fruitToSwapBack: Fruit? = null
 
+    // Track sorting algorithm
+    var algorithm: SortAlgorithm = SortAlgorithm.BOGO
+    var nextCheckIndex = 0
+
     fun assignTask(newTask: ShuffleTask, cellSize: Double) {
         task = newTask
         fruitBeingCarried = null
 
         val from = newTask.from
-        // Align monkey exactly on grid
         startX = endX
         startY = endY
         endX = from.col * cellSize
@@ -200,7 +207,11 @@ class Monkey(val id: Int) {
 
                     fruitBeingCarried = grid.get(from)
                     fruitToSwapBack = grid.get(to)
-                    grid.set(from, Fruit.EMPTY) // Leave empty
+
+                    // Only remove fruit if destination isn't empty
+                    if (fruitToSwapBack != Fruit.EMPTY) {
+                        grid.set(from, fruitToSwapBack!!)
+                    }
 
                     startX = from.col * cellSize
                     startY = from.row * cellSize
@@ -214,21 +225,17 @@ class Monkey(val id: Int) {
                     val from = task!!.from
 
                     grid.set(to, fruitBeingCarried!!)
-                    grid.set(from, fruitToSwapBack!!)
 
-                    // Check combos only on 'to' cell
+                    // Only restore if source was empty
+                    if (grid.get(from) == Fruit.EMPTY) {
+                        grid.set(from, fruitToSwapBack!!)
+                    }
+
                     val comboCount = grid.comboAt(to)
                     if (comboCount >= 2) {
-                        if (comboCount > 2) {
-                            GameStats.coins += comboCount * 15 // 15 coins for larger combos
-                        } else {
-                            GameStats.coins += comboCount * 5 // 5 coins for smallest combo
-                        }
-
-                        // Get all combo positions around 'to'
+                        GameStats.coins += comboCount * 15
                         val comboPositions = grid.getComboCellsAt(to)
                         if (comboPositions.isNotEmpty()) {
-//                            particleSystem.add(ComboHighlightEffect(comboPositions))
                             particleSystem.add(ComboParticleEffect(comboPositions, 24.0))
                         }
                     }
@@ -263,9 +270,12 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
     val gridModel = GridModel(rows, cols)
     val monkeys = mutableListOf(Monkey(1))
     val particleSystem = ParticleSystem()
-
-    // We will store delta time between ticks for particle update
     private var lastTickTime = System.nanoTime()
+
+    // Track grid state for bubble sort
+    private var bubbleSortPass = 0
+    private var bubbleSortRow = 0
+    private var bubbleSortCol = 0
 
     fun tick() {
         val now = System.nanoTime()
@@ -274,24 +284,52 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
-                val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
-                var to: Pos
-                do {
-                    to = Pos(Random.nextInt(rows), Random.nextInt(cols))
-                } while (from == to)
-
-                val fruit = gridModel.get(from)
-                monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = 24.0)
+                when (monkey.algorithm) {
+                    SortAlgorithm.BOGO -> assignRandomTask(monkey)
+                    SortAlgorithm.BUBBLE -> assignBubbleTask(monkey)
+                }
             }
-            // Update monkeys - now pass particle system so monkey can add effects
             monkey.update(gridModel, cellSize = 24.0, particleSystem)
         }
 
         particleSystem.update(deltaMs)
+    }
 
-        // REMOVE global combo detection from here! We only reward combos made by monkey placement now.
-        // val combos = gridModel.detectCombos()
-        // if (combos.isNotEmpty()) GameStats.coins += combos.size
+    private fun assignRandomTask(monkey: Monkey) {
+        val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
+        var to: Pos
+        do {
+            to = Pos(Random.nextInt(rows), Random.nextInt(cols))
+        } while (from == to)
+
+        val fruit = gridModel.get(from)
+        monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = 24.0)
+    }
+
+    private fun assignBubbleTask(monkey: Monkey) {
+        val row = bubbleSortRow
+
+        while (true) {
+            if (bubbleSortCol >= cols - 1) {
+                bubbleSortCol = 0
+                bubbleSortRow = (bubbleSortRow + 1) % rows
+                return
+            }
+
+            val col = bubbleSortCol
+            val from = Pos(row, col)
+            val to = Pos(row, col + 1)
+
+            bubbleSortCol++
+
+            val fruitA = gridModel.get(from)
+            val fruitB = gridModel.get(to)
+
+            if (fruitA.name > fruitB.name) {
+                monkey.assignTask(ShuffleTask(from, to, fruitA), cellSize = 24.0)
+                return
+            }
+        }
     }
 
     fun buyMonkey(): Boolean {
@@ -300,6 +338,18 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
             GameStats.coins -= cost
             monkeys.add(Monkey(monkeys.size + 1))
             return true
+        }
+        return false
+    }
+
+    fun upgradeMonkey(): Boolean {
+        if (GameStats.coins >= 500) {
+            // Upgrade first monkey with BogoSort
+            monkeys.firstOrNull { it.algorithm == SortAlgorithm.BOGO }?.let {
+                it.algorithm = SortAlgorithm.BUBBLE
+                GameStats.coins -= 500
+                return true
+            }
         }
         return false
     }
@@ -321,12 +371,18 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    private val upgradeButton = Button("Upgrade to BubbleSort (500 coins)").apply {
+        setOnAction {
+            if (!controller.upgradeMonkey()) println("Not enough coins or no monkeys to upgrade!")
+        }
+    }
+
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton)
         root.center = canvas
 
         val scene = Scene(root)
@@ -361,7 +417,7 @@ class MonkeySortSimulatorApp : Application() {
 
         gc.font = Font.font(cellSize * 0.95)
 
-        // Draw moving monkeys with fruit above head
+        // Draw monkeys with algorithm indicator
         for (monkey in controller.monkeys) {
             val pos = monkey.getDrawPosition()
             val (x, y) = pos
@@ -370,11 +426,21 @@ class MonkeySortSimulatorApp : Application() {
                 gc.fillText(fruit.emoji, x + 2, y - 2)
             }
             gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+
+            // Draw algorithm indicator
+            gc.font = Font.font(10.0)
+            gc.fillText(
+                when (monkey.algorithm) {
+                    SortAlgorithm.BOGO -> "Bogo"
+                    SortAlgorithm.BUBBLE -> "Bubble"
+                },
+                x + 5,
+                y + cellSize * 0.55 - 15
+            )
+            gc.font = Font.font(cellSize * 0.75)
         }
 
-        gc.font = Font.font(cellSize * 0.75)
-
-        // Render particle effects on top
+        // Render particle effects
         controller.particleSystem.render(gc, cellSize)
 
         // Draw UI info
@@ -382,9 +448,20 @@ class MonkeySortSimulatorApp : Application() {
         gc.font = Font.font(16.0)
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
+        gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}",
+            250.0, gc.canvas.height - 5)
 
         buyButton.isDisable = GameStats.coins < 200 * controller.monkeys.size
         buyButton.text = "Buy Monkey (${200 * controller.monkeys.size} coins)"
+        upgradeButton.isDisable = GameStats.coins < 500 ||
+                controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
+
+        // Show completion message
+        if (controller.gridModel.isSorted()) {
+            gc.fill = Color.RED
+            gc.font = Font.font(48.0)
+            gc.fillText("Completed!", gc.canvas.width / 2 - 120, gc.canvas.height / 2)
+        }
     }
 }
 
