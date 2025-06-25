@@ -1,5 +1,4 @@
 package com.segerend
-
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.scene.Scene
@@ -13,9 +12,8 @@ import javafx.scene.text.Font
 import javafx.stage.Stage
 import kotlin.random.Random
 
-// --- Data Classes & Enums ---
+// --- Core Game Models ---
 
-// Fruit enum with emoji and name (name used for sorting)
 enum class Fruit(val emoji: String) {
     APPLE("🍎"),
     BANANA("🍌"),
@@ -28,121 +26,63 @@ enum class Fruit(val emoji: String) {
     }
 }
 
-// Position helper
 data class Pos(val row: Int, val col: Int)
-
-// --- Grid Model: holds fruit grid and game logic ---
+data class ShuffleTask(val from: Pos, val to: Pos, val fruit: Fruit)
 
 class GridModel(val rows: Int, val cols: Int) {
     private val grid = Array(rows) { Array(cols) { Fruit.random() } }
 
-    // Returns a copy of grid for safe read-only use
     fun getGridCopy(): Array<Array<Fruit>> = Array(rows) { r -> grid[r].clone() }
 
-    // Checks if grid is sorted alphabetically in row-major order
     fun isSorted(): Boolean {
         val flat = grid.flatten()
         return flat.zipWithNext().all { it.first.name <= it.second.name }
     }
 
-    // Detect combos: horizontal or vertical 12+ same fruits in a row
-    // Returns list of positions part of combos
     fun detectCombos(): List<Pos> {
         val combos = mutableSetOf<Pos>()
-
-        // Horizontal combos
         for (r in 0 until rows) {
             var count = 1
             for (c in 1 until cols) {
                 if (grid[r][c] == grid[r][c - 1]) count++ else count = 1
-                if (count >= 12) {
-                    for (cc in c downTo c - 2) combos.add(Pos(r, cc))
-                }
+                if (count >= 3) for (cc in c downTo c - 2) combos.add(Pos(r, cc))
             }
         }
-
-        // Vertical combos
         for (c in 0 until cols) {
             var count = 1
             for (r in 1 until rows) {
                 if (grid[r][c] == grid[r - 1][c]) count++ else count = 1
-                if (count >= 3) {
-                    for (rr in r downTo r - 2) combos.add(Pos(rr, c))
-                }
+                if (count >= 3) for (rr in r downTo r - 2) combos.add(Pos(rr, c))
             }
         }
         return combos.toList()
     }
 
-    // Shuffle entire grid randomly
-    fun shuffleAll() {
-        val flat = grid.flatten().toMutableList()
-        flat.shuffle()
-        for (i in 0 until rows * cols) {
-            grid[i / cols][i % cols] = flat[i]
-        }
-    }
-
-    // Partial shuffle example: shuffle unsorted rows only
-    fun shuffleUnsortedRows() {
-        for (r in 0 until rows) {
-            if (!isRowSorted(r)) {
-                val rowFruits = grid[r].toMutableList()
-                rowFruits.shuffle()
-                grid[r] = rowFruits.toTypedArray()
-            }
-        }
-    }
-
-    private fun isRowSorted(row: Int): Boolean {
-        for (c in 0 until cols - 1) {
-            if (grid[row][c].name > grid[row][c + 1].name) return false
-        }
-        return true
-    }
-
-    // Swap fruits at two positions
     fun swap(pos1: Pos, pos2: Pos) {
         val temp = grid[pos1.row][pos1.col]
         grid[pos1.row][pos1.col] = grid[pos2.row][pos2.col]
         grid[pos2.row][pos2.col] = temp
     }
+
+    fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
 }
 
-// --- Shuffle Strategies ---
+// --- Monkey Logic ---
 
-sealed class ShuffleStrategy {
-    abstract fun shuffle(grid: GridModel)
-}
-
-class FullShuffleStrategy : ShuffleStrategy() {
-    override fun shuffle(grid: GridModel) = grid.shuffleAll()
-}
-
-class PartialShuffleStrategy : ShuffleStrategy() {
-    override fun shuffle(grid: GridModel) = grid.shuffleUnsortedRows()
-}
-
-// --- Monkey class: responsible for shuffling ---
-
-class Monkey(
-    val id: Int
-) {
+class Monkey(val id: Int) {
     var currentTask: ShuffleTask? = null
-    private var progress: Double = 0.0
-    private val speedPerTick = 0.01  // Adjust this for speed of movement
+    private var progress = 0.0
+    private val speedPerTick = 0.01
 
     fun assignTask(task: ShuffleTask) {
         currentTask = task
         progress = 0.0
     }
 
-    fun updateAndAct(grid: GridModel) {
+    fun update(grid: GridModel) {
         val task = currentTask ?: return
-
         progress += speedPerTick
         if (progress >= 1.0) {
-            // Reached destination, perform the swap
             grid.swap(task.from, task.to)
             currentTask = null
         }
@@ -156,78 +96,47 @@ class Monkey(
         val y0 = task.from.row * cellSize
         val x1 = task.to.col * cellSize
         val y1 = task.to.row * cellSize
-
         val x = x0 + (x1 - x0) * progress
         val y = y0 + (y1 - y0) * progress
-        return Pair(x, y)
+        return x to y
     }
+
+    fun getCarriedFruit(): Fruit? = currentTask?.fruit
 }
 
-data class ShuffleTask(val from: Pos, val to: Pos)
+// --- Game Controller ---
 
-// --- Game Controller: Manages game state, coins, upgrades, monkeys, game loop ---
-
-class GameController(
-    val rows: Int = 25,
-    val cols: Int = 25,
-) {
+class GameController(val rows: Int = 25, val cols: Int = 25) {
     val gridModel = GridModel(rows, cols)
-    val monkeys = mutableListOf(Monkey(1))  // Start with one monkey
+    val monkeys = mutableListOf(Monkey(1))
+    var coins = 0
 
-    var coins: Int = 0
-    var shuffleIntervalMillis: Long = 2000  // 2 seconds default
-    var lastShuffleTime = 0L
-
-    // Upgrades
-    var useSmarterShuffle = false
-
-    fun tick(currentTimeMillis: Long) {
-        // Assign tasks if monkey is idle
+    fun tick() {
+        // Assign tasks to idle monkeys
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
-                val from = Pos(Random.nextInt(gridModel.rows), Random.nextInt(gridModel.cols))
-                val to = Pos(Random.nextInt(gridModel.rows), Random.nextInt(gridModel.cols))
-                if (from != to) {
-                    monkey.assignTask(ShuffleTask(from, to))
-                }
+                val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
+                var to: Pos
+                do {
+                    to = Pos(Random.nextInt(rows), Random.nextInt(cols))
+                } while (to == from)
+
+                val fruit = gridModel.get(from)
+                monkey.assignTask(ShuffleTask(from, to, fruit))
             }
         }
 
-        // Update monkey animations and apply swaps
-        monkeys.forEach { it.updateAndAct(gridModel) }
+        monkeys.forEach { it.update(gridModel) }
 
-        // Coin reward if combos
+        // Coins from combos
         val combos = gridModel.detectCombos()
         if (combos.isNotEmpty()) {
             coins += combos.size
         }
     }
 
-    // Buy upgrade: speed up shuffle interval by 10%, costs 10 coins
-    fun buySpeedUpgrade(): Boolean {
-        val cost = 10
-        if (coins >= cost) {
-            coins -= cost
-            shuffleIntervalMillis = (shuffleIntervalMillis * 0.9).toLong().coerceAtLeast(200)
-            return true
-        }
-        return false
-    }
-
-    // Buy smarter shuffle unlock for 500 coins
-    fun buySmarterShuffleUnlock(): Boolean {
-        val cost = 500
-        if (coins >= cost && !useSmarterShuffle) {
-            coins -= cost
-            useSmarterShuffle = true
-            return true
-        }
-        return false
-    }
-
-    // Buy extra monkey to speed up (cost grows)
     fun buyMonkey(): Boolean {
-        val cost = 20 * monkeys.size // cost grows with number of monkeys
+        val cost = 20 * monkeys.size
         if (coins >= cost) {
             coins -= cost
             monkeys.add(Monkey(monkeys.size + 1))
@@ -237,102 +146,79 @@ class GameController(
     }
 }
 
-// --- UI & Rendering ---
+// --- Main Application ---
 
 class MonkeySortSimulatorApp : Application() {
 
-    private val gridRows = 25
-    private val gridCols = 25
+    private val rows = 25
+    private val cols = 25
     private val cellSize = 24.0
 
-    private val controller = GameController(gridRows, gridCols)
+    private val controller = GameController(rows, cols)
 
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
-        val canvas = Canvas(gridCols * cellSize, gridRows * cellSize)
+        val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        // Bottom UI buttons for upgrades
-        val buySpeedBtn = Button("Buy Speed Upgrade (10 coins)")
-        val buySmartShuffleBtn = Button("Unlock Smarter Shuffle (500 coins)")
-        val buyMonkeyBtn = Button("Buy Monkey (cost grows)")
-
-        buySpeedBtn.setOnAction {
-            if (!controller.buySpeedUpgrade()) {
-                println("Not enough coins for speed upgrade")
-            }
-        }
-        buySmartShuffleBtn.setOnAction {
-            if (!controller.buySmarterShuffleUnlock()) {
-                println("Not enough coins or already unlocked")
-            }
-        }
-        buyMonkeyBtn.setOnAction {
-            if (!controller.buyMonkey()) {
-                println("Not enough coins for monkey")
-            }
+        val buyBtn = Button("Buy Monkey (Cost increases)")
+        buyBtn.setOnAction {
+            if (!controller.buyMonkey()) println("Not enough coins!")
         }
 
-        val buttonBox = HBox(10.0, buySpeedBtn, buySmartShuffleBtn, buyMonkeyBtn)
-        root.bottom = buttonBox
+        root.bottom = HBox(10.0, buyBtn)
         root.center = canvas
 
-        primaryStage.scene = Scene(root)
-        primaryStage.title = "Monkeysort Simulator"
+        val scene = Scene(root)
+        primaryStage.title = "Monkeysort Simulator 🐒"
+        primaryStage.scene = scene
         primaryStage.show()
 
-        // Start game loop
-        val timer = object : AnimationTimer() {
+        object : AnimationTimer() {
             override fun handle(now: Long) {
-                // now is in nanoseconds
-                val currentTimeMillis = now / 1_000_000
-
-                controller.tick(currentTimeMillis)
+                controller.tick()
                 draw(gc)
             }
-        }
-        timer.start()
+        }.start()
     }
 
     private fun draw(gc: GraphicsContext) {
-        // Clear canvas
-        gc.fill = Color.WHITESMOKE
+        gc.fill = Color.BEIGE
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
         val grid = controller.gridModel.getGridCopy()
 
-        gc.font = Font.font(cellSize * 0.8)
+        gc.font = Font.font(cellSize * 0.75)
 
-        // Draw grid fruits
-        for (r in 0 until gridRows) {
-            for (c in 0 until gridCols) {
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
                 val fruit = grid[r][c]
                 val x = c * cellSize
                 val y = r * cellSize
-
-                gc.fill = Color.BLACK
-                gc.fillText(fruit.emoji, x + cellSize * 0.1, y + cellSize * 0.8)
+                gc.fillText(fruit.emoji, x + 4, y + cellSize * 0.8)
             }
         }
 
-        controller.monkeys.forEach { monkey ->
-            monkey.getDrawPosition(cellSize)?.let { (x, y) ->
-                gc.font = Font.font(cellSize * 0.9)
-                gc.fillText("🐒", x, y + cellSize * 0.8)
+        // Draw moving monkeys with fruit above head
+        for (monkey in controller.monkeys) {
+            val pos = monkey.getDrawPosition(cellSize) ?: continue
+            val (x, y) = pos
+            val fruit = monkey.getCarriedFruit()
+
+            if (fruit != null) {
+                gc.fillText(fruit.emoji, x + 2, y - 2) // Fruit above
             }
+            gc.fillText("🐒", x + 2, y + cellSize * 0.7)
         }
 
-        // Draw coins and info
+        // Draw UI info
         gc.fill = Color.DARKGREEN
-        gc.font = Font.font(18.0)
-        gc.fillText("Coins: ${controller.coins}", 10.0, gc.canvas.height - 10)
-        gc.fillText("Monkeys: ${controller.monkeys.size}", 150.0, gc.canvas.height - 10)
-        gc.fillText("Shuffle Speed: ${controller.shuffleIntervalMillis} ms", 300.0, gc.canvas.height - 10)
-        gc.fillText("Smarter Shuffle: ${if (controller.useSmarterShuffle) "YES" else "NO"}", 500.0, gc.canvas.height - 10)
+        gc.font = Font.font(16.0)
+        gc.fillText("Coins: ${controller.coins}", 10.0, gc.canvas.height - 5)
+        gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
     }
 }
 
-// --- Run the app ---
 fun main() {
     Application.launch(MonkeySortSimulatorApp::class.java)
 }
