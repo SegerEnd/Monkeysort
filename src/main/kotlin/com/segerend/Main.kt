@@ -24,6 +24,12 @@ enum class Fruit(val emoji: String) {
     PINEAPPLE("🍍"),
     STRAWBERRY("🍓"),
     CHERRY("🍒"),
+    KIWI("🥝"),
+    PEACH("🍑"),
+    MANGO("🥭"),
+    BLUEBERRY("🫐"),
+    LEMON("🍋"),
+    LETTUCE("🥬"),
     EMPTY(" ");
 
     companion object {
@@ -84,7 +90,7 @@ class GridModel(val rows: Int, val cols: Int) {
             totalMatches++
             right++
         }
-        if (totalMatches >= 3) return totalMatches
+        if (totalMatches >= 2) return totalMatches
 
         // Vertical check
         totalMatches = 1
@@ -98,9 +104,41 @@ class GridModel(val rows: Int, val cols: Int) {
             totalMatches++
             down++
         }
-        if (totalMatches >= 3) return totalMatches
+        if (totalMatches >= 2) return totalMatches
 
         return 0
+    }
+
+    fun getComboCellsAt(pos: Pos): List<Pos> {
+        val fruit = get(pos)
+        if (fruit == Fruit.EMPTY) return emptyList()
+
+        val matched = mutableSetOf<Pos>()
+
+        // Horizontal combo detection
+        val row = pos.row
+        val col = pos.col
+
+        var left = col
+        while (left > 0 && get(Pos(row, left - 1)) == fruit) left--
+        var right = col
+        while (right < cols - 1 && get(Pos(row, right + 1)) == fruit) right++
+
+        if (right - left + 1 >= 2) {
+            for (c in left..right) matched.add(Pos(row, c))
+        }
+
+        // Vertical combo detection
+        var up = row
+        while (up > 0 && get(Pos(up - 1, col)) == fruit) up--
+        var down = row
+        while (down < rows - 1 && get(Pos(down + 1, col)) == fruit) down++
+
+        if (down - up + 1 >= 2) {
+            for (r in up..down) matched.add(Pos(r, col))
+        }
+
+        return matched.toList()
     }
 
     fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
@@ -148,7 +186,7 @@ class Monkey(val id: Int) {
         state = State.MOVING_TO_SOURCE
     }
 
-    fun update(grid: GridModel, cellSize: Double) {
+    fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
         if (task == null) return
 
         progress += speedPerTick
@@ -160,12 +198,10 @@ class Monkey(val id: Int) {
                     val from = task!!.from
                     val to = task!!.to
 
-                    // Pick up fruit from 'from', and store destination fruit
                     fruitBeingCarried = grid.get(from)
                     fruitToSwapBack = grid.get(to)
                     grid.set(from, Fruit.EMPTY) // Leave empty
 
-                    // Move to 'to'
                     startX = from.col * cellSize
                     startY = from.row * cellSize
                     endX = to.col * cellSize
@@ -182,8 +218,19 @@ class Monkey(val id: Int) {
 
                     // Check combos only on 'to' cell
                     val comboCount = grid.comboAt(to)
-                    if (comboCount >= 3) {
-                        GameStats.coins += comboCount * 10
+                    if (comboCount >= 2) {
+                        if (comboCount > 2) {
+                            GameStats.coins += comboCount * 15 // 15 coins for larger combos
+                        } else {
+                            GameStats.coins += comboCount * 5 // 5 coins for smallest combo
+                        }
+
+                        // Get all combo positions around 'to'
+                        val comboPositions = grid.getComboCellsAt(to)
+                        if (comboPositions.isNotEmpty()) {
+//                            particleSystem.add(ComboHighlightEffect(comboPositions))
+                            particleSystem.add(ComboParticleEffect(comboPositions, 24.0))
+                        }
                     }
 
                     fruitBeingCarried = null
@@ -215,8 +262,16 @@ class Monkey(val id: Int) {
 class GameController(val rows: Int = 25, val cols: Int = 25) {
     val gridModel = GridModel(rows, cols)
     val monkeys = mutableListOf(Monkey(1))
+    val particleSystem = ParticleSystem()
+
+    // We will store delta time between ticks for particle update
+    private var lastTickTime = System.nanoTime()
 
     fun tick() {
+        val now = System.nanoTime()
+        val deltaMs = (now - lastTickTime) / 1_000_000
+        lastTickTime = now
+
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
                 val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
@@ -228,12 +283,15 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
                 val fruit = gridModel.get(from)
                 monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = 24.0)
             }
+            // Update monkeys - now pass particle system so monkey can add effects
+            monkey.update(gridModel, cellSize = 24.0, particleSystem)
         }
 
-        monkeys.forEach { it.update(gridModel, cellSize = 24.0) }
+        particleSystem.update(deltaMs)
 
-        val combos = gridModel.detectCombos()
-        if (combos.isNotEmpty()) GameStats.coins += combos.size
+        // REMOVE global combo detection from here! We only reward combos made by monkey placement now.
+        // val combos = gridModel.detectCombos()
+        // if (combos.isNotEmpty()) GameStats.coins += combos.size
     }
 
     fun buyMonkey(): Boolean {
@@ -301,16 +359,23 @@ class MonkeySortSimulatorApp : Application() {
             }
         }
 
+        gc.font = Font.font(cellSize * 0.95)
+
         // Draw moving monkeys with fruit above head
         for (monkey in controller.monkeys) {
-            val pos = monkey.getDrawPosition() ?: continue
+            val pos = monkey.getDrawPosition()
             val (x, y) = pos
             val fruit = monkey.getCarriedFruit()
             if (fruit != null) {
                 gc.fillText(fruit.emoji, x + 2, y - 2)
             }
-            gc.fillText("🐒", x + 2, y + cellSize * 0.7)
+            gc.fillText("🐒", x + 2, y + cellSize * 0.55)
         }
+
+        gc.font = Font.font(cellSize * 0.75)
+
+        // Render particle effects on top
+        controller.particleSystem.render(gc, cellSize)
 
         // Draw UI info
         gc.fill = Color.DARKGREEN
@@ -318,7 +383,6 @@ class MonkeySortSimulatorApp : Application() {
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
 
-        // Update button state
         buyButton.isDisable = GameStats.coins < 200 * controller.monkeys.size
         buyButton.text = "Buy Monkey (${200 * controller.monkeys.size} coins)"
     }
