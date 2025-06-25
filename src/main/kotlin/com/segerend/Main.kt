@@ -70,38 +70,79 @@ class GridModel(val rows: Int, val cols: Int) {
 // --- Monkey Logic ---
 
 class Monkey(val id: Int) {
-    var currentTask: ShuffleTask? = null
+    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING }
+
+    private var state = State.IDLE
+    private var task: ShuffleTask? = null
     private var progress = 0.0
     private val speedPerTick = 0.01
 
-    fun assignTask(task: ShuffleTask) {
-        currentTask = task
+    private var startX = 0.0
+    private var startY = 0.0
+    private var endX = 0.0
+    private var endY = 0.0
+
+    private var fruitBeingCarried: Fruit? = null
+
+    fun assignTask(newTask: ShuffleTask, cellSize: Double) {
+        task = newTask
+        fruitBeingCarried = null
+
+        // Phase 1: Walk to source
+        val from = newTask.from
+        startX = endX
+        startY = endY
+        endX = from.col * cellSize
+        endY = from.row * cellSize
         progress = 0.0
+        state = State.MOVING_TO_SOURCE
     }
 
-    fun update(grid: GridModel) {
-        val task = currentTask ?: return
+    fun update(grid: GridModel, cellSize: Double) {
+        if (task == null) return
+
         progress += speedPerTick
         if (progress >= 1.0) {
-            grid.swap(task.from, task.to)
-            currentTask = null
+            progress = 0.0
+
+            when (state) {
+                State.MOVING_TO_SOURCE -> {
+                    // Arrived at source; now go to destination carrying fruit
+                    val to = task!!.to
+                    startX = endX
+                    startY = endY
+                    endX = to.col * cellSize
+                    endY = to.row * cellSize
+                    fruitBeingCarried = task!!.fruit
+                    state = State.CARRYING
+                }
+
+                State.CARRYING -> {
+                    // Arrived at destination; swap and finish
+                    grid.swap(task!!.from, task!!.to)
+                    fruitBeingCarried = null
+                    task = null
+                    state = State.IDLE
+
+                    // Monkey remains at the destination
+                }
+
+                State.IDLE -> {}
+            }
         }
     }
 
-    fun isIdle(): Boolean = currentTask == null
+    fun isIdle(): Boolean = (state == State.IDLE && task == null)
 
-    fun getDrawPosition(cellSize: Double): Pair<Double, Double>? {
-        val task = currentTask ?: return null
-        val x0 = task.from.col * cellSize
-        val y0 = task.from.row * cellSize
-        val x1 = task.to.col * cellSize
-        val y1 = task.to.row * cellSize
-        val x = x0 + (x1 - x0) * progress
-        val y = y0 + (y1 - y0) * progress
+    fun getDrawPosition(): Pair<Double, Double> {
+        val x = lerp(startX, endX, progress)
+        val y = lerp(startY, endY, progress)
         return x to y
     }
 
-    fun getCarriedFruit(): Fruit? = currentTask?.fruit
+    fun getCarriedFruit(): Fruit? = fruitBeingCarried
+
+    private fun lerp(a: Double, b: Double, t: Double): Double = a + (b - a) * t
 }
 
 // --- Game Controller ---
@@ -112,31 +153,27 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
     var coins = 0
 
     fun tick() {
-        // Assign tasks to idle monkeys
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
                 val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
                 var to: Pos
                 do {
                     to = Pos(Random.nextInt(rows), Random.nextInt(cols))
-                } while (to == from)
+                } while (from == to)
 
                 val fruit = gridModel.get(from)
-                monkey.assignTask(ShuffleTask(from, to, fruit))
+                monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = 24.0)
             }
         }
 
-        monkeys.forEach { it.update(gridModel) }
+        monkeys.forEach { it.update(gridModel, cellSize = 24.0) }
 
-        // Coins from combos
         val combos = gridModel.detectCombos()
-        if (combos.isNotEmpty()) {
-            coins += combos.size
-        }
+        if (combos.isNotEmpty()) coins += combos.size
     }
 
     fun buyMonkey(): Boolean {
-        val cost = 20 * monkeys.size
+        val cost = 200 * monkeys.size
         if (coins >= cost) {
             coins -= cost
             monkeys.add(Monkey(monkeys.size + 1))
@@ -161,7 +198,7 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        val buyBtn = Button("Buy Monkey (Cost increases)")
+        val buyBtn = Button("Buy Monkey (200 * Monkeys)")
         buyBtn.setOnAction {
             if (!controller.buyMonkey()) println("Not enough coins!")
         }
@@ -170,7 +207,7 @@ class MonkeySortSimulatorApp : Application() {
         root.center = canvas
 
         val scene = Scene(root)
-        primaryStage.title = "Monkeysort Simulator 🐒"
+        primaryStage.title = "Monkeysort 🐒"
         primaryStage.scene = scene
         primaryStage.show()
 
@@ -201,12 +238,11 @@ class MonkeySortSimulatorApp : Application() {
 
         // Draw moving monkeys with fruit above head
         for (monkey in controller.monkeys) {
-            val pos = monkey.getDrawPosition(cellSize) ?: continue
+            val pos = monkey.getDrawPosition() ?: continue
             val (x, y) = pos
             val fruit = monkey.getCarriedFruit()
-
             if (fruit != null) {
-                gc.fillText(fruit.emoji, x + 2, y - 2) // Fruit above
+                gc.fillText(fruit.emoji, x + 2, y - 2)
             }
             gc.fillText("🐒", x + 2, y + cellSize * 0.7)
         }
