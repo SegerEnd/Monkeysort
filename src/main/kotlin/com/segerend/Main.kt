@@ -540,9 +540,18 @@ class MonkeySortSimulatorApp : Application() {
 
         // Show completion message
         if (controller.gridModel.isSorted()) {
-            gc.fill = Color.RED
-            gc.font = emojiCompatibleFont(48.0)
-            gc.fillText("Completed!", gc.canvas.width / 2 - 120, gc.canvas.height / 2)
+            // 🎉 MONKEYSORT FINISHED! 🎉
+            // draw a beautiful message with finished message with backdrop behind text
+            gc.fill = Color.DODGERBLUE
+            gc.fillRoundRect(
+                gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 50, 300.0, 75.0, 20.0, 20.0
+            )
+            gc.fill = Color.ORANGE
+            gc.font = emojiCompatibleFont(24.0)
+            gc.fillText("🎉 MONKEYSORT FINISHED! 🎉", gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 20)
+
+            // add confetti effect
+            controller.particleSystem.add(ConfettiParticleEffect( gc.canvas.width, gc.canvas.height, 100.toDouble(), 1000L))
         }
     }
 }

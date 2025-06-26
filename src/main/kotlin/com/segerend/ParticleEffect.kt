@@ -130,31 +130,32 @@ class ComboParticleEffect(
     }
 }
 
-class CompletionParticleEffect(
+class ConfettiParticleEffect(
     private val centerX: Double,
     private val centerY: Double,
-    durationMs: Long = 2000L
+    private val cellSize: Double,
+    private val durationMs: Long = 1000L
 ) : ParticleEffect(durationMs) {
 
     private val particles = mutableListOf<Particle>()
 
     init {
         repeat(100) {
-            particles += createRandomParticle(centerX, centerY, durationMs)
+            particles += createRandomConfettiParticle()
         }
     }
 
-    private fun createRandomParticle(x: Double, y: Double, lifetime: Long): Particle {
+    private fun createRandomConfettiParticle(): Particle {
         val angle = Random.nextDouble(0.0, 2 * PI)
         val speed = Random.nextDouble(1.0, 3.0)
         return Particle(
-            x = x,
-            y = y,
+            x = centerX,
+            y = centerY,
             dx = cos(angle) * speed,
             dy = sin(angle) * speed - 1.0,
-            size = Random.nextDouble(5.0, 15.0),
-            lifetime = lifetime,
-            baseColor = Color.rgb(Random.nextInt(256), Random.nextInt(256), Random.nextInt(256))
+            size = Random.nextDouble(4.0, 10.0),
+            lifetime = durationMs,
+            baseColor = Color.hsb(Random.nextDouble(0.0, 360.0), 1.0, 1.0)
         )
     }
 
