@@ -99,7 +99,9 @@ class ComboParticleEffect(
             val baseX = cell.col * cellSize + cellSize / 2
             val baseY = cell.row * cellSize + cellSize / 2
             repeat(10) {
-                particles += createRandomParticle(baseX, baseY, durationMs, baseColor)
+                particles += createRandomParticle(baseX, baseY, durationMs, baseColor.deriveColor(
+                    0.0, 1.0, 1.0, 0.5
+                ))
             }
         }
     }
