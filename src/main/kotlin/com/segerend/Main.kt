@@ -206,14 +206,16 @@ class Monkey(val id: Int) {
     fun assignTask(newTask: ShuffleTask, cellSize: Double): Boolean {
         if (!LockManager.tryLock(newTask.from, newTask.to)) return false
 
+        val (currentX, currentY) = getDrawPosition()
+
         task = newTask
         fruitBeingCarried = null
-        val from = newTask.from
 
-        startX = endX
-        startY = endY
-        endX = from.col * cellSize
-        endY = from.row * cellSize
+        startX = currentX
+        startY = currentY
+        endX = newTask.from.col * cellSize
+        endY = newTask.from.row * cellSize
+
         progress = 0.0
         state = State.MOVING_TO_SOURCE
         return true
@@ -551,7 +553,7 @@ class MonkeySortSimulatorApp : Application() {
             gc.fillText("🎉 MONKEYSORT FINISHED! 🎉", gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 20)
 
             // add confetti effect
-            controller.particleSystem.add(ConfettiParticleEffect( gc.canvas.width, gc.canvas.height, 100.toDouble(), 1000L))
+            controller.particleSystem.add(ConfettiEffect( gc.canvas.width, gc.canvas.height,  1000L))
         }
     }
 }
