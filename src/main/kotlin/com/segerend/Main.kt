@@ -13,6 +13,18 @@ import javafx.scene.text.Font
 import javafx.stage.Stage
 import kotlin.random.Random
 
+// --- Constants --- (not jet used, but want to implement it)
+object GameConfig {
+    const val ROWS = 25
+    const val COLS = 25
+    const val CELL_SIZE = 24.0
+    const val MONKEY_BASE_COST = 200
+    const val MONKEY_UPGRADE_COST = 500
+    const val MONKEY_WANDER_RADIUS_FACTOR = 3.0
+    const val COMBO_REWARD_MULTIPLIER = 15
+    const val MAX_FPS = 60
+}
+
 // --- Core Game Models ---
 
 enum class Fruit(val emoji: String) {
@@ -58,103 +70,38 @@ class GridModel(val rows: Int, val cols: Int) {
         return flat.zipWithNext().all { it.first.name <= it.second.name }
     }
 
-    fun detectCombos(): List<Pos> {
-        val combos = mutableSetOf<Pos>()
-        for (r in 0 until rows) {
-            var count = 1
-            for (c in 1 until cols) {
-                if (grid[r][c] == grid[r][c - 1]) count++ else count = 1
-                if (count >= 8) for (cc in c downTo c - 2) combos.add(Pos(r, cc))
-            }
-        }
-        for (c in 0 until cols) {
-            var count = 1
-            for (r in 1 until rows) {
-                if (grid[r][c] == grid[r - 1][c]) count++ else count = 1
-                if (count >= 8) for (rr in r downTo r - 2) combos.add(Pos(rr, c))
-            }
-        }
-        return combos.toList()
-    }
-
-    fun comboAt(pos: Pos): Int {
+    private fun collectMatches(pos: Pos, direction: (Int) -> Pos): List<Pos> {
         val fruit = get(pos)
-        if (fruit == Fruit.EMPTY) return 0
-
-        var totalMatches = 1 // Count this cell
-
-        // Horizontal check
-        var left = pos.col - 1
-        while (left >= 0 && get(Pos(pos.row, left)) == fruit) {
-            totalMatches++
-            left--
+        val matches = mutableListOf(pos)
+        var offset = 1
+        while (true) {
+            val nextPos = direction(offset)
+            if (nextPos.row !in 0 until rows || nextPos.col !in 0 until cols) break
+            if (get(nextPos) != fruit) break
+            matches.add(nextPos)
+            offset++
         }
-        var right = pos.col + 1
-        while (right < cols && get(Pos(pos.row, right)) == fruit) {
-            totalMatches++
-            right++
-        }
-        if (totalMatches >= 2) return totalMatches
-
-        // Vertical check
-        totalMatches = 1
-        var up = pos.row - 1
-        while (up >= 0 && get(Pos(up, pos.col)) == fruit) {
-            totalMatches++
-            up--
-        }
-        var down = pos.row + 1
-        while (down < rows && get(Pos(down, pos.col)) == fruit) {
-            totalMatches++
-            down++
-        }
-        if (totalMatches >= 2) return totalMatches
-
-        return 0
+        return matches
     }
 
     fun getComboCellsAt(pos: Pos): List<Pos> {
-        val fruit = get(pos)
-        if (fruit == Fruit.EMPTY) return emptyList()
+        val horizontal = collectMatches(pos) { Pos(pos.row, pos.col + it) } +
+                collectMatches(pos) { Pos(pos.row, pos.col - it) }.drop(1)
 
-        val matched = mutableSetOf<Pos>()
+        val vertical = collectMatches(pos) { Pos(pos.row + it, pos.col) } +
+                collectMatches(pos) { Pos(pos.row - it, pos.col) }.drop(1)
 
-        // Horizontal combo detection
-        val row = pos.row
-        val col = pos.col
-
-        var left = col
-        while (left > 0 && get(Pos(row, left - 1)) == fruit) left--
-        var right = col
-        while (right < cols - 1 && get(Pos(row, right + 1)) == fruit) right++
-
-        if (right - left + 1 >= 2) {
-            for (c in left..right) matched.add(Pos(row, c))
-        }
-
-        // Vertical combo detection
-        var up = row
-        while (up > 0 && get(Pos(up - 1, col)) == fruit) up--
-        var down = row
-        while (down < rows - 1 && get(Pos(down + 1, col)) == fruit) down++
-
-        if (down - up + 1 >= 2) {
-            for (r in up..down) matched.add(Pos(r, col))
-        }
-
-        return matched.toList()
+        val result = mutableSetOf<Pos>()
+        if (horizontal.size >= 3) result.addAll(horizontal)
+        if (vertical.size >= 3) result.addAll(vertical)
+        return result.toList()
     }
+
 
     fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
 
     fun set(pos: Pos, fruit: Fruit) {
         grid[pos.row][pos.col] = fruit
-    }
-
-    fun swap(a: Pos, b: Pos) {
-        val tmp = grid[a.row][a.col]
-        grid[a.row][a.col] = grid[b.row][b.col]
-        grid[b.row][b.col] = tmp
     }
 }
 
@@ -178,7 +125,7 @@ object LockManager {
 // --- Monkey Logic ---
 
 // Updated Monkey class with proper locking and task state
-class Monkey(val id: Int) {
+class Monkey() {
     enum class State { IDLE, MOVING_TO_SOURCE, CARRYING, RETURNING, WANDERING, CHATTING, DANCING }
 
     var state: State = State.IDLE
@@ -222,12 +169,8 @@ class Monkey(val id: Int) {
         task = newTask
         fruitBeingCarried = null
 
-        startX = currentX
-        startY = currentY
-        endX = newTask.from.col * cellSize
-        endY = newTask.from.row * cellSize
+        setMovement(newTask.from, newTask.to, cellSize)
 
-        progress = 0.0
         state = State.MOVING_TO_SOURCE
         return true
     }
@@ -267,7 +210,7 @@ class Monkey(val id: Int) {
                         endY = from.row * cellSize
                         state = State.RETURNING
 
-                        val comboCount = grid.comboAt(to)
+                        val comboCount = grid.getComboCellsAt(to).size
                         if (comboCount >= 2) {
                             GameStats.coins += comboCount * 15
                             val comboPositions = grid.getComboCellsAt(to)
@@ -325,24 +268,26 @@ class Monkey(val id: Int) {
                     endY = wanderTargetY
                 }
 
-                State.CHATTING -> {
-                    behaviorTimer += deltaTime
-                    if (behaviorTimer >= behaviorDuration) {
-                        behaviorTimer = 0.0
-                        state = State.IDLE
-                    }
-                }
-
-                State.DANCING -> {
-                    behaviorTimer += deltaTime
-                    if (behaviorTimer >= behaviorDuration) {
-                        behaviorTimer = 0.0
-                        state = State.IDLE
-                    }
-                }
+                State.CHATTING, State.DANCING -> updateBehavioralState(deltaTime)
 
                 else -> {}
             }
+        }
+    }
+
+    private fun setMovement(from: Pos, to: Pos, cellSize: Double) {
+        startX = from.col * cellSize
+        startY = from.row * cellSize
+        endX = to.col * cellSize
+        endY = to.row * cellSize
+        progress = 0.0
+    }
+
+    private fun updateBehavioralState(deltaTime: Double) {
+        behaviorTimer += deltaTime
+        if (behaviorTimer >= behaviorDuration) {
+            behaviorTimer = 0.0
+            state = State.IDLE
         }
     }
 
@@ -395,7 +340,7 @@ class Monkey(val id: Int) {
 
 class GameController(val rows: Int = 25, val cols: Int = 25) {
     val gridModel = GridModel(rows, cols)
-    val monkeys = mutableListOf(Monkey(1))
+    val monkeys = mutableListOf(Monkey())
     val particleSystem = ParticleSystem()
     private var lastTickTime = System.nanoTime()
 
@@ -470,7 +415,7 @@ class GameController(val rows: Int = 25, val cols: Int = 25) {
         val cost = 200 * monkeys.size
         if (GameStats.coins >= cost) {
             GameStats.coins -= cost
-            monkeys.add(Monkey(monkeys.size + 1))
+            monkeys.add(Monkey())
             return true
         }
         return false
@@ -529,7 +474,7 @@ class MonkeySortSimulatorApp : Application() {
     private val debugSpawnButton = Button("Debug: Spawn 50 Monkeys").apply {
         setOnAction {
             repeat(50) {
-                controller.monkeys.add(Monkey(controller.monkeys.size + 1).apply {
+                controller.monkeys.add(Monkey().apply {
                     algorithm = SortAlgorithm.BOGO
                 })
             }
