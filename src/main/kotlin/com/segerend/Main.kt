@@ -158,8 +158,6 @@ class GridModel(val rows: Int, val cols: Int) {
     }
 }
 
-// --- Monkey Logic ---
-
 // Shared Lock Manager
 object LockManager {
     private val lockedPositions = mutableSetOf<Pos>()
@@ -177,12 +175,17 @@ object LockManager {
     }
 }
 
+// --- Monkey Logic ---
+
 // Updated Monkey class with proper locking and task state
 class Monkey(val id: Int) {
-    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING, RETURNING }
+    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING, RETURNING, WANDERING, CHATTING, DANCING }
 
-    private var state = State.IDLE
+    var state: State = State.IDLE
+        private set
+
     var task: ShuffleTask? = null
+
     private var progress = 0.0
     private var speedPerTick = 0.03
 
@@ -193,13 +196,21 @@ class Monkey(val id: Int) {
 
     private var fruitBeingCarried: Fruit? = null
 
+    // Wandering specifics
+    private var wanderTargetX = 0.0
+    private var wanderTargetY = 0.0
+
+    // Behavior timer for chatting/dancing
+    private var behaviorTimer = 0.0
+    private val behaviorDuration = 100.0  // time for chatting/dancing
+
     // Sorting algorithm
     var algorithm: SortAlgorithm = SortAlgorithm.BOGO
         set(value) {
             field = value
             speedPerTick = when (value) {
                 SortAlgorithm.BOGO -> 0.03
-                SortAlgorithm.BUBBLE -> 0.07 // Faster monkey speed for BubbleSort
+                SortAlgorithm.BUBBLE -> 0.07
             }
         }
 
@@ -222,59 +233,149 @@ class Monkey(val id: Int) {
     }
 
     fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        if (task == null) return
+        val deltaTime = 1.0 * GameStats.timeFactor  // Assuming update called once per tick, scale with timeFactor
 
-        progress += speedPerTick * GameStats.timeFactor
-        if (progress >= 1.0) {
-            progress = 0.0
+        if (task != null) {
+            // Handle task-related states as before
+            progress += speedPerTick * deltaTime
+            if (progress >= 1.0) {
+                progress = 0.0
 
-            val from = task!!.from
-            val to = task!!.to
+                val from = task!!.from
+                val to = task!!.to
+
+                when (state) {
+                    State.MOVING_TO_SOURCE -> {
+                        fruitBeingCarried = grid.get(from)
+                        grid.set(from, Fruit.EMPTY)
+
+                        startX = from.col * cellSize
+                        startY = from.row * cellSize
+                        endX = to.col * cellSize
+                        endY = to.row * cellSize
+                        state = State.CARRYING
+                    }
+
+                    State.CARRYING -> {
+                        val oldFruit = grid.get(to)
+                        grid.set(to, fruitBeingCarried!!)
+                        fruitBeingCarried = oldFruit
+
+                        startX = to.col * cellSize
+                        startY = to.row * cellSize
+                        endX = from.col * cellSize
+                        endY = from.row * cellSize
+                        state = State.RETURNING
+
+                        val comboCount = grid.comboAt(to)
+                        if (comboCount >= 2) {
+                            GameStats.coins += comboCount * 15
+                            val comboPositions = grid.getComboCellsAt(to)
+                            if (comboPositions.isNotEmpty()) {
+                                particleSystem.add(ComboParticleEffect(comboPositions, 24.0))
+                            }
+                        }
+                    }
+
+                    State.RETURNING -> {
+                        grid.set(from, fruitBeingCarried!!)
+                        fruitBeingCarried = null
+                        LockManager.unlock(from, to)
+                        task = null
+                        state = State.IDLE
+                        startX = endX
+                        startY = endY
+                    }
+
+                    else -> {}
+                }
+            }
+        } else {
+            // No task assigned — idle behaviors
 
             when (state) {
-                State.MOVING_TO_SOURCE -> {
-                    fruitBeingCarried = grid.get(from)
-                    grid.set(from, Fruit.EMPTY)
-
-                    startX = from.col * cellSize
-                    startY = from.row * cellSize
-                    endX = to.col * cellSize
-                    endY = to.row * cellSize
-                    state = State.CARRYING
-                }
-
-                State.CARRYING -> {
-                    val oldFruit = grid.get(to)
-                    grid.set(to, fruitBeingCarried!!)
-                    fruitBeingCarried = oldFruit
-
-                    startX = to.col * cellSize
-                    startY = to.row * cellSize
-                    endX = from.col * cellSize
-                    endY = from.row * cellSize
-                    state = State.RETURNING
-
-                    val comboCount = grid.comboAt(to)
-                    if (comboCount >= 2) {
-                        GameStats.coins += comboCount * 15
-                        val comboPositions = grid.getComboCellsAt(to)
-                        if (comboPositions.isNotEmpty()) {
-                            particleSystem.add(ComboParticleEffect(comboPositions, 24.0))
-                        }
+                State.IDLE -> {
+                    // Pick a behavior randomly
+                    val choice = (1..4).random()
+                    when (choice) {
+                        1 -> startWandering(cellSize)
+                        2 -> startChatting()
+                        3 -> startDancing()
+                        else -> {} // stay idle doing nothing
                     }
                 }
 
-                State.RETURNING -> {
-                    grid.set(from, fruitBeingCarried!!)
-                    fruitBeingCarried = null
-                    LockManager.unlock(from, to)
-                    task = null
-                    state = State.IDLE
+                State.WANDERING -> {
+                    progress += speedPerTick * deltaTime
+                    if (progress >= 1.0) {
+                        progress = 0.0
+                        // Arrived at wander target, pick new wander target or go idle
+                        if ((1..5).random() == 1) { // 20% chance to stop wandering
+                            state = State.IDLE
+                        } else {
+                            pickNewWanderTarget(cellSize)
+                        }
+                    }
+                    // Update current position between start and wanderTarget
+                    val x = lerp(startX, wanderTargetX, progress)
+                    val y = lerp(startY, wanderTargetY, progress)
+                    startX = x
+                    startY = y
+                    endX = wanderTargetX
+                    endY = wanderTargetY
+                }
+
+                State.CHATTING -> {
+                    behaviorTimer += deltaTime
+                    if (behaviorTimer >= behaviorDuration) {
+                        behaviorTimer = 0.0
+                        state = State.IDLE
+                    }
+                }
+
+                State.DANCING -> {
+                    behaviorTimer += deltaTime
+                    if (behaviorTimer >= behaviorDuration) {
+                        behaviorTimer = 0.0
+                        state = State.IDLE
+                    }
                 }
 
                 else -> {}
             }
         }
+    }
+
+    private fun startWandering(cellSize: Double) {
+        state = State.WANDERING
+        progress = 0.0
+        wanderTargetX = startX
+        wanderTargetY = startY
+        pickNewWanderTarget(cellSize)
+        endX = wanderTargetX
+        endY = wanderTargetY
+    }
+
+    private fun pickNewWanderTarget(cellSize: Double) {
+        val wanderRadius = cellSize * 3
+        val dx = Random.nextDouble(-wanderRadius, wanderRadius)
+        val dy = Random.nextDouble(-wanderRadius, wanderRadius)
+
+        wanderTargetX = (startX + dx).coerceAtLeast(0.0)
+        wanderTargetY = (startY + dy).coerceAtLeast(0.0)
+        startX = endX
+        startY = endY
+        progress = 0.0
+    }
+
+    private fun startChatting() {
+        state = State.CHATTING
+        behaviorTimer = 0.0
+    }
+
+    private fun startDancing() {
+        state = State.DANCING
+        behaviorTimer = 0.0
     }
 
     fun isIdle(): Boolean = (state == State.IDLE && task == null)
@@ -500,16 +601,30 @@ class MonkeySortSimulatorApp : Application() {
 
         // Draw monkeys with algorithm indicator
         for (monkey in controller.monkeys) {
-            val pos = monkey.getDrawPosition()
-            val (x, y) = pos
+            gc.font = emojiCompatibleFont(cellSize * 0.75)
+
+            val (x, y) = monkey.getDrawPosition()
             val fruit = monkey.getCarriedFruit()
+
             if (fruit != null) {
                 gc.fill = Color.OLIVEDRAB
                 gc.fillText(fruit.emoji, x + 2, y - 2)
             }
+
             gc.fill = Color.CHOCOLATE
 
+            // Draw monkey emoji
             gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+
+            // Draw behavior indicator
+            gc.font = emojiCompatibleFont(10.0)
+            when (monkey.state) {
+                Monkey.State.CHATTING -> gc.fillText("💬", x + (cellSize / 2), y + cellSize * 0.1)
+                Monkey.State.DANCING -> gc.fillText("🎶", x + (cellSize / 2), y + cellSize * 0.1)
+//                Monkey.State.WANDERING -> gc.fillText("🌍", x + (cellSize / 2), y + cellSize * 0.6)
+                Monkey.State.WANDERING -> gc.fillText("🗺️", x + (cellSize / 2), y + cellSize * 0.6)
+                else -> {}
+            }
 
             // Draw algorithm indicator
             gc.font = emojiCompatibleFont(10.0)
@@ -521,8 +636,8 @@ class MonkeySortSimulatorApp : Application() {
                 x + 5,
                 y + cellSize * 0.55 - 15
             )
-            gc.font = emojiCompatibleFont(cellSize * 0.75)
         }
+        gc.font = emojiCompatibleFont(cellSize * 0.75)
 
         // Render particle effects
         controller.particleSystem.render(gc, cellSize)

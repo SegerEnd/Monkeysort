@@ -78,7 +78,8 @@ abstract class BaseParticleEffect(
 
     override fun update(deltaMs: Long) {
         elapsedMs += deltaMs
-        if (elapsedMs >= durationMs) return
+
+        // Only update existing particles
         particles.forEach { it.update(deltaMs) }
         particles.removeIf { !it.isAlive }
     }
@@ -117,7 +118,7 @@ class ComboParticleEffect(
             val rawCount = speedFactor * comboFactor
 
             // Clamp the particle count between 2 and 12
-            val particleCount = rawCount.toInt().coerceIn(2, 12)
+            val particleCount = rawCount.toInt().coerceIn(1, 12)
 
             repeat(particleCount) {
                 particles += createParticle(baseX, baseY)
@@ -129,7 +130,7 @@ class ComboParticleEffect(
         val angle = Random.nextDouble(0.0, 2 * PI)
         val speed = Random.nextDouble(0.5, 2.0)
         val size = Random.nextDouble(4.0, 10.0)
-        val color = baseColor.deriveColor(0.0, 1.0, 1.0, 0.8)
+        val color = baseColor.deriveColor(0.0, 1.0, 1.0, 0.7)
 
         return SimpleParticle(
             x = x,
