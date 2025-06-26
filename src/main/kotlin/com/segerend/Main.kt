@@ -18,9 +18,9 @@ object GameConfig {
     const val ROWS = 25
     const val COLS = 25
     const val CELL_SIZE = 24.0
-    const val MONKEY_BASE_COST = 200
+    const val MONKEY_BASE_COST = 75
     const val MONKEY_UPGRADE_COST = 500
-    const val MONKEY_WANDER_RADIUS_FACTOR = 3.0
+    const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
     const val COMBO_REWARD_MULTIPLIER = 15
     const val MAX_FPS = 60
 }
@@ -295,14 +295,18 @@ class Monkey {
     }
 
     private fun pickNewWanderTarget(cellSize: Double) {
-        val wanderRadius = cellSize * GameConfig.MONKEY_WANDER_RADIUS_FACTOR
-        val dx = Random.nextDouble(-wanderRadius, wanderRadius)
-        val dy = Random.nextDouble(-wanderRadius, wanderRadius)
+        val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
+        val targetCol = ((startX + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
+        val targetRow = ((startY + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
 
-        wanderTargetX = (startX + dx).coerceAtLeast(0.0)
-        wanderTargetY = (startY + dy).coerceAtLeast(0.0)
+        wanderTargetX = (targetCol * cellSize).coerceIn(0.0, (GameConfig.COLS - 1) * cellSize)
+        wanderTargetY = (targetRow * cellSize).coerceIn(0.0, (GameConfig.ROWS - 1) * cellSize)
+
         startX = endX
         startY = endY
+        endX = wanderTargetX
+        endY = wanderTargetY
+
         progress = 0.0
     }
 
@@ -347,6 +351,7 @@ class Monkey {
             State.CHATTING -> gc.fillText("💬", x + (cellSize / 2), y + cellSize * 0.1)
             State.DANCING -> gc.fillText("🎶", x + (cellSize / 2), y + cellSize * 0.1)
             State.WANDERING -> gc.fillText("🗺️", x + (cellSize / 2), y + cellSize * 0.6)
+            State.IDLE -> gc.fillText("💤", x + (cellSize / 2), y + cellSize * 0.1)
             else -> {}
         }
 
@@ -438,7 +443,7 @@ class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig
     }
 
     fun buyMonkey(): Boolean {
-        val cost = GameConfig.MONKEY_BASE_COST * monkeys.size
+        val cost = (GameConfig.MONKEY_BASE_COST * monkeys.size * 1.1).toInt() // Increase cost with each monkey
         if (GameStats.coins >= cost) {
             GameStats.coins -= cost
             monkeys.add(Monkey())

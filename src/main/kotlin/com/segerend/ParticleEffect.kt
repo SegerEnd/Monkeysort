@@ -118,7 +118,7 @@ class ComboParticleEffect(
             val rawCount = speedFactor * comboFactor
 
             // Clamp the particle count between 2 and 12
-            val particleCount = rawCount.toInt().coerceIn(1, 12)
+            val particleCount = rawCount.toInt().coerceIn(2, 12)
 
             repeat(particleCount) {
                 particles += createParticle(baseX, baseY)
