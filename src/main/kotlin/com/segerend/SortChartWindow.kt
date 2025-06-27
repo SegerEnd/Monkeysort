@@ -7,20 +7,24 @@ import javafx.scene.chart.*
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
 import kotlin.concurrent.fixedRateTimer
+import java.util.logging.Level
+import java.util.logging.Logger
 
-class SortChartWindow(private val controller: GameController) {
 
-    private val stage = Stage()
-    private val xAxis = CategoryAxis()
-    private val yAxis = NumberAxis()
-    private val series = XYChart.Series<String, Number>()
-    private val barChart = BarChart<String, Number>(xAxis, yAxis)
+class SortChartWindow private constructor(private val controller: GameController) {
+    val stage = Stage()
 
     init {
-        barChart.title = "Sorting Progress"
+        // Setup your chart window as before
+        val xAxis = CategoryAxis()
+        val yAxis = NumberAxis()
+        val series = XYChart.Series<String, Number>()
+        val barChart = BarChart<String, Number>(xAxis, yAxis)
+
+        barChart.title = "Sorting Chart"
         barChart.legendSide = Side.RIGHT
-        xAxis.label = "Index"
-        yAxis.label = "Fruit Ordinal"
+        xAxis.label = "Index in Grid"
+        yAxis.label = "Alphabetical Rank"
         barChart.data.add(series)
         barChart.animated = false
 
@@ -28,13 +32,15 @@ class SortChartWindow(private val controller: GameController) {
         val scene = Scene(root, 600.0, 400.0)
         stage.scene = scene
         stage.title = "Sorting Chart"
-        stage.show()
 
-        startUpdating()
+        stage.setOnCloseRequest {
+            instance = null
+        }
+
+        startUpdating(series)
     }
 
-    private fun startUpdating() {
-        // Filter out Fruit.EMPTY when generating sorted list
+    private fun startUpdating(series: XYChart.Series<String, Number>) {
         val allFruitsSorted = Fruit.values()
             .filter { it != Fruit.EMPTY }
             .sortedBy { it.name }
@@ -46,15 +52,13 @@ class SortChartWindow(private val controller: GameController) {
             series.data.clear()
 
             flatList.forEachIndexed { index, fruit ->
-                if (fruit != Fruit.EMPTY) {
-                    val rank = allFruitsSorted.indexOf(fruit).toDouble()
-                    val data = XYChart.Data<String, Number>(index.toString(), rank)
-                    series.data.add(data)
-                } else {
-                    // Add a zero-height bar or skip entirely.
-                    // If skipping, bar positions may shift. If you want consistency, add a "null" or 0 bar.
-                    val data = XYChart.Data<String, Number>(index.toString(), 0)
-                    series.data.add(data)
+                val rank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
+                val data = XYChart.Data<String, Number>(index.toString(), rank)
+                series.data.add(data)
+
+                // After the node is created, set the bar color
+                data.nodeProperty().addListener { _, _, node ->
+                    node?.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
                 }
             }
         }
@@ -65,14 +69,36 @@ class SortChartWindow(private val controller: GameController) {
             Platform.runLater {
                 newGrid.forEachIndexed { index, fruit ->
                     if (index < series.data.size) {
-                        if (fruit != Fruit.EMPTY) {
-                            val targetRank = allFruitsSorted.indexOf(fruit).toDouble()
-                            series.data[index].yValue = targetRank
-                        } else {
-                            series.data[index].yValue = 0 // Optional: or leave unchanged
-                        }
+                        val data = series.data[index]
+                        val targetRank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
+                        data.yValue = targetRank
+
+                        // Update the bar color on update
+                        data.node?.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
                     }
                 }
+            }
+        }
+    }
+
+    companion object {
+        private var instance: SortChartWindow? = null
+
+        fun show(controller: GameController) {
+            try {
+                if (instance == null) {
+                    instance = SortChartWindow(controller)
+                    instance!!.stage.show()
+                } else {
+                    if (!instance!!.stage.isShowing) {
+                        instance!!.stage.show()
+                    }
+                    instance!!.stage.toFront()
+                    instance!!.stage.requestFocus()
+                }
+            } catch (e: Exception) {
+                Logger.getLogger(SortChartWindow::class.java.name)
+                    .log(Level.SEVERE, "Failed to show SortChartWindow", e)
             }
         }
     }

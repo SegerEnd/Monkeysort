@@ -345,16 +345,16 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugSpeedButton = Button("Debug: Speed x15").apply {
+    private val debugSpeedButton = Button("Debug: Speed x25").apply {
         setOnAction {
-            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 15.0 else 1.0
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 25.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
         }
     }
 
     private val chartButton = Button("Show Sort Chart").apply {
         setOnAction {
-            SortChartWindow(controller)
+            SortChartWindow.show(controller)
         }
     }
 
