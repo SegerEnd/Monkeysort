@@ -23,14 +23,18 @@ object GameConfig {
     const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
     const val COMBO_REWARD_MULTIPLIER = 15
     const val MAX_FPS = 60
+    const val STRIP_HEIGHT = 30.0
 }
 
 // --- Core Game Models ---
 
-enum class Fruit(val emoji: String) {
-    APPLE("🍎"), BANANA("🍌"), GRAPE("🍇"), ORANGE("🍊"), WATERMELON("🍉"),
-    PINEAPPLE("🍍"), STRAWBERRY("🍓"), CHERRY("🍒"), KIWI("🥝"), PEACH("🍑"),
-    MANGO("🥭"), BLUEBERRY("🫐"), LEMON("🍋"), LETTUCE("🥬"), EMPTY(" ");
+enum class Fruit(val emoji: String, val color: Color) {
+    APPLE("🍎", Color.RED), BANANA("🍌", Color.YELLOW), GRAPE("🍇", Color.PURPLE),
+    ORANGE("🍊", Color.ORANGE), WATERMELON("🍉", Color.GREEN),
+    PINEAPPLE("🍍", Color.YELLOW), STRAWBERRY("🍓", Color.RED),
+    CHERRY("🍒", Color.RED), KIWI("🥝", Color.GREEN), PEACH("🍑", Color.PEACHPUFF),
+    MANGO("🥭", Color.ORANGE), BLUEBERRY("🫐", Color.BLUE), LEMON("🍋", Color.YELLOW),
+    LETTUCE("🥬", Color.GREEN), EMPTY(" ", Color.TRANSPARENT);
 
     companion object {
         fun random(): Fruit = values().filter { it != EMPTY }.random()
@@ -70,6 +74,40 @@ class GridModel(val rows: Int, val cols: Int) {
         if (horizontal.size >= 3) result.addAll(horizontal)
         if (vertical.size >= 3) result.addAll(vertical)
         return return result.toList()
+    }
+
+    fun getSameFruitCount(fruit: Fruit): Int {
+        return grid.sumOf { row -> row.count { it == fruit } }
+    }
+
+    fun getSameFruitNeighborCount(fruit: Fruit): Int {
+        // get the number of adjacent cells only left and right of the 1d grid and return the highest count of neighbouring same fruits
+        var maxCount = 0
+        for (r in 0 until rows) {
+            var count = 0
+            for (c in 0 until cols) {
+                if (grid[r][c] == fruit) {
+                    count++
+                } else {
+                    maxCount = maxOf(maxCount, count)
+                    count = 0
+                }
+            }
+            maxCount = maxOf(maxCount, count)
+        }
+        for (c in 0 until cols) {
+            var count = 0
+            for (r in 0 until rows) {
+                if (grid[r][c] == fruit) {
+                    count++
+                } else {
+                    maxCount = maxOf(maxCount, count)
+                    count = 0
+                }
+            }
+            maxCount = maxOf(maxCount, count)
+        }
+        return maxCount
     }
 }
 
@@ -456,11 +494,6 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private fun emojiCompatibleFont(size: Double): Font {
-        val os = System.getProperty("os.name").lowercase()
-        return if (os.contains("win")) Font.font("Segoe UI Emoji", size) else Font.font(size)
-    }
-
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
@@ -487,13 +520,45 @@ class MonkeySortSimulatorApp : Application() {
         }.start()
     }
 
+    fun drawSortStrip(gc: GraphicsContext, grid: GridModel) {
+        // draw for each fruit type one square with fixed dims in the sort strip and fill it with the color of the fruit based use getSameFruitNeighborCount
+        // verdeel alle vierkanten over de breedte van de strip behalve EMPTY
+        val stripWidth = gc.canvas.width
+        val stripHeight = GameConfig.STRIP_HEIGHT
+
+        // calculte the spacing between the squares
+        val spacing = 2.0
+        val squareWidth = (stripWidth - spacing * (Fruit.values().size - 1)) / Fruit.values().size
+
+        for (fruit in Fruit.values()) {
+            if (fruit == Fruit.EMPTY) continue
+            val maxCount = grid.getSameFruitCount(fruit)
+            val neighborcount = grid.getSameFruitNeighborCount(fruit)
+
+            // calculate the gray scale factor based on the neighbor count so if the maxcount is the same as the neighborcount the grayScaleFactor is 0.0
+            val grayScaleFactor = if (maxCount > 0) neighborcount.toDouble() / maxCount else 0.0
+            val x = Fruit.values().indexOf(fruit) * (squareWidth + spacing)
+
+            println("Fruit: ${fruit.name}, Count: $neighborcount, Max: $maxCount, GrayScaleFactor: $grayScaleFactor")
+
+            gc.fill = Color.gray(grayScaleFactor, 0.5) // Use gray scale based on neighbor count
+
+//            gc.fill = fruit.color
+
+            gc.fillRect(x, gc.canvas.height - stripHeight, squareWidth, stripHeight)
+
+            gc.fill = Color.LIMEGREEN
+            gc.fillText(fruit.emoji, x + 2, gc.canvas.height - stripHeight + 12)
+        }
+    }
+
     private fun draw(gc: GraphicsContext) {
         gc.fill = Color.BEIGE
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
         val grid = controller.gridModel.getGridCopy()
         gc.fill = Color.OLIVEDRAB
-        gc.font = emojiCompatibleFont(cellSize * 0.75)
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
         for (r in 0 until rows) {
             for (c in 0 until cols) {
                 val fruit = grid[r][c]
@@ -507,10 +572,12 @@ class MonkeySortSimulatorApp : Application() {
         controller.particleSystem.render(gc, cellSize)
 
         gc.fill = Color.DARKGREEN
-        gc.font = emojiCompatibleFont(16.0)
+        gc.font = Utils.emojiCompatibleFont(16.0)
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
         gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 5)
+
+        drawSortStrip(gc, controller.gridModel)
 
         buyButton.isDisable = GameStats.coins < GameConfig.MONKEY_BASE_COST * controller.monkeys.size
         buyButton.text = "Buy Monkey (${GameConfig.MONKEY_BASE_COST * controller.monkeys.size} coins)"
@@ -520,7 +587,7 @@ class MonkeySortSimulatorApp : Application() {
             gc.fill = Color.DODGERBLUE
             gc.fillRoundRect(gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 50, 300.0, 75.0, 20.0, 20.0)
             gc.fill = Color.ORANGE
-            gc.font = emojiCompatibleFont(24.0)
+            gc.font = Utils.emojiCompatibleFont(24.0)
             gc.fillText("🎉 MONKEYSORT FINISHED! 🎉", gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 20)
             controller.particleSystem.add(ConfettiEffect(gc.canvas.width, gc.canvas.height, 1000L))
         }
