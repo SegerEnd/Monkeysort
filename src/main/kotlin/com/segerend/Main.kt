@@ -28,79 +28,48 @@ object GameConfig {
 // --- Core Game Models ---
 
 enum class Fruit(val emoji: String) {
-    APPLE("🍎"),
-    BANANA("🍌"),
-    GRAPE("🍇"),
-    ORANGE("🍊"),
-    WATERMELON("🍉"),
-    PINEAPPLE("🍍"),
-    STRAWBERRY("🍓"),
-    CHERRY("🍒"),
-    KIWI("🥝"),
-    PEACH("🍑"),
-    MANGO("🥭"),
-    BLUEBERRY("🫐"),
-    LEMON("🍋"),
-    LETTUCE("🥬"),
-    EMPTY(" ");
+    APPLE("🍎"), BANANA("🍌"), GRAPE("🍇"), ORANGE("🍊"), WATERMELON("🍉"),
+    PINEAPPLE("🍍"), STRAWBERRY("🍓"), CHERRY("🍒"), KIWI("🥝"), PEACH("🍑"),
+    MANGO("🥭"), BLUEBERRY("🫐"), LEMON("🍋"), LETTUCE("🥬"), EMPTY(" ");
 
     companion object {
-        fun random(): Fruit {
-            val fruits = values().filter { it != EMPTY }
-            return fruits[Random.nextInt(fruits.size)]
-        }
+        fun random(): Fruit = values().filter { it != EMPTY }.random()
     }
 }
 
 data class Pos(val row: Int, val col: Int)
+
 data class ShuffleTask(val from: Pos, val to: Pos, val fruit: Fruit)
 
-enum class SortAlgorithm {
-    BOGO,
-    BUBBLE
-}
+enum class SortAlgorithm { BOGO, BUBBLE }
 
 class GridModel(val rows: Int, val cols: Int) {
     private val grid = Array(rows) { Array(cols) { Fruit.random() } }
 
     fun getGridCopy(): Array<Array<Fruit>> = Array(rows) { r -> grid[r].clone() }
-
-    fun isSorted(): Boolean {
-        val flat = grid.flatten()
-        return flat.zipWithNext().all { it.first.name <= it.second.name }
-    }
-
-    private fun collectMatches(pos: Pos, direction: (Int) -> Pos): List<Pos> {
-        val fruit = get(pos)
-        val matches = mutableListOf(pos)
-        var offset = 1
-        while (true) {
-            val nextPos = direction(offset)
-            if (nextPos.row !in 0 until rows || nextPos.col !in 0 until cols) break
-            if (get(nextPos) != fruit) break
-            matches.add(nextPos)
-            offset++
-        }
-        return matches
-    }
+    fun isSorted(): Boolean = grid.flatten().zipWithNext().all { it.first.name <= it.second.name }
+    fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
+    fun set(pos: Pos, fruit: Fruit) { grid[pos.row][pos.col] = fruit }
 
     fun getComboCellsAt(pos: Pos): List<Pos> {
-        val horizontal = collectMatches(pos) { Pos(pos.row, pos.col + it) } +
-                collectMatches(pos) { Pos(pos.row, pos.col - it) }.drop(1)
+        fun collectMatches(direction: (Int) -> Pos): List<Pos> {
+            val fruit = get(pos)
+            val matches = mutableListOf(pos)
+            var offset = 1
+            while (true) {
+                val nextPos = direction(offset++)
+                if (nextPos.row !in 0 until rows || nextPos.col !in 0 until cols || get(nextPos) != fruit) break
+                matches.add(nextPos)
+            }
+            return matches
+        }
 
-        val vertical = collectMatches(pos) { Pos(pos.row + it, pos.col) } +
-                collectMatches(pos) { Pos(pos.row - it, pos.col) }.drop(1)
-
+        val horizontal = collectMatches { Pos(pos.row, pos.col + it) } + collectMatches { Pos(pos.row, pos.col - it) }.drop(1)
+        val vertical = collectMatches { Pos(pos.row + it, pos.col) } + collectMatches { Pos(pos.row - it, pos.col) }.drop(1)
         val result = mutableSetOf<Pos>()
         if (horizontal.size >= 3) result.addAll(horizontal)
         if (vertical.size >= 3) result.addAll(vertical)
-        return result.toList()
-    }
-
-    fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
-
-    fun set(pos: Pos, fruit: Fruit) {
-        grid[pos.row][pos.col] = fruit
+        return return result.toList()
     }
 }
 
@@ -115,263 +84,295 @@ object LockManager {
     }
 
     @Synchronized
-    fun unlock(vararg positions: Pos) {
-        lockedPositions.removeAll(positions.toSet())
+    fun unlock(vararg positions: Pos) { lockedPositions.removeAll(positions.toSet()) }
+}
+
+// --- Monkey States ---
+
+interface MonkeyState {
+    fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem)
+    fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double)
+    fun getDrawPosition(): Pair<Double, Double>
+}
+
+abstract class ProgressState : MonkeyState {
+    protected var progress = 0.0
+    var speedPerTick = 0.03
+    protected var startX = 0.0
+    protected var startY = 0.0
+    protected var endX = 0.0
+    protected var endY = 0.0
+
+    override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        progress += speedPerTick * GameStats.timeFactor
+        if (progress >= 1.0) {
+            progress = 0.0
+            onProgressComplete(monkey, grid, cellSize, particleSystem)
+        }
+    }
+
+    abstract fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem)
+
+    override fun getDrawPosition(): Pair<Double, Double> = lerp(startX, endX, progress) to lerp(startY, endY, progress)
+    protected fun lerp(a: Double, b: Double, t: Double): Double = a + (b - a) * t
+}
+
+class IdleState(private val x: Double, private val y: Double) : MonkeyState {
+    override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        when ((1..4).random()) {
+            1 -> monkey.state = WanderingState(x, y, cellSize)
+            2 -> monkey.state = ChattingState(x, y)
+            3 -> monkey.state = DancingState(x, y)
+        }
+    }
+
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.font = Utils.emojiCompatibleFont(10.0)
+        gc.fillText("💤", x + cellSize / 2, y + cellSize * 0.1)
+    }
+
+    override fun getDrawPosition(): Pair<Double, Double> = x to y
+}
+
+class MovingToSourceState(private val task: ShuffleTask, private val cellSize: Double, startX: Double, startY: Double) : ProgressState() {
+    init {
+        this.startX = startX
+        this.startY = startY
+        this.endX = task.from.col * cellSize
+        this.endY = task.from.row * cellSize
+    }
+
+    override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        val fruit = grid.get(task.from)
+        grid.set(task.from, Fruit.EMPTY)
+        monkey.fruitBeingCarried = fruit
+        monkey.state = CarryingState(task, cellSize, endX, endY)
+    }
+
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        val (x, y) = getDrawPosition()
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
     }
 }
 
-// --- Monkey Logic ---
+class CarryingState(private val task: ShuffleTask, private val cellSize: Double, startX: Double, startY: Double) : ProgressState() {
+    init {
+        this.startX = startX
+        this.startY = startY
+        this.endX = task.to.col * cellSize
+        this.endY = task.to.row * cellSize
+    }
 
-class Monkey {
-    enum class State { IDLE, MOVING_TO_SOURCE, CARRYING, RETURNING, WANDERING, CHATTING, DANCING }
-
-    var state: State = State.IDLE
-        private set
-
-    var task: ShuffleTask? = null
-
-    private var progress = 0.0
-    private var speedPerTick = 0.03
-
-    private var startX = 0.0
-    private var startY = 0.0
-    private var endX = 0.0
-    private var endY = 0.0
-
-    private var fruitBeingCarried: Fruit? = null
-
-    private var wanderTargetX = 0.0
-    private var wanderTargetY = 0.0
-
-    private var behaviorTimer = 0.0
-    private val behaviorDuration = 100.0
-
-    var algorithm: SortAlgorithm = SortAlgorithm.BOGO
-        set(value) {
-            field = value
-            speedPerTick = when (value) {
-                SortAlgorithm.BOGO -> 0.03
-                SortAlgorithm.BUBBLE -> 0.07
-            }
+    override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        val oldFruit = grid.get(task.to)
+        grid.set(task.to, monkey.fruitBeingCarried!!)
+        monkey.fruitBeingCarried = oldFruit
+        monkey.state = ReturningState(task, cellSize, endX, endY)
+        val comboCount = grid.getComboCellsAt(task.to).size
+        if (comboCount >= 2) {
+            GameStats.coins += comboCount * GameConfig.COMBO_REWARD_MULTIPLIER
+            val comboPositions = grid.getComboCellsAt(task.to)
+            if (comboPositions.isNotEmpty()) particleSystem.add(ComboParticleEffect(comboPositions, cellSize))
         }
+    }
 
-    fun assignTask(newTask: ShuffleTask, cellSize: Double): Boolean {
-        if (!LockManager.tryLock(newTask.from, newTask.to)) return false
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        val (x, y) = getDrawPosition()
+        gc.fill = Color.OLIVEDRAB
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
+        gc.fill = Color.CHOCOLATE
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+    }
+}
 
-        // Get current position BEFORE modifying state
-        val (currentX, currentY) = getDrawPosition()
+class ReturningState(private val task: ShuffleTask, private val cellSize: Double, startX: Double, startY: Double) : ProgressState() {
+    init {
+        this.startX = startX
+        this.startY = startY
+        this.endX = task.from.col * cellSize
+        this.endY = task.from.row * cellSize
+    }
 
-        task = newTask
-        fruitBeingCarried = null
+    override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        grid.set(task.from, monkey.fruitBeingCarried!!)
+        monkey.fruitBeingCarried = null
+        LockManager.unlock(task.from, task.to)
+        monkey.state = IdleState(endX, endY)
+    }
 
-        // Set movement from CURRENT POSITION to source
-        startX = currentX
-        startY = currentY
-        endX = newTask.from.col * cellSize
-        endY = newTask.from.row * cellSize
-        progress = 0.0
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        val (x, y) = getDrawPosition()
+        gc.fill = Color.OLIVEDRAB
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
+        gc.fill = Color.CHOCOLATE
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+    }
+}
 
-        state = State.MOVING_TO_SOURCE
+class WanderingState(startX: Double, startY: Double, cellSize: Double) : ProgressState() {
+    init {
+        this.startX = startX
+        this.startY = startY
+        pickNewTarget(cellSize)
+    }
+
+    private fun pickNewTarget(cellSize: Double) {
+        val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
+        val targetCol = ((startX + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
+        val targetRow = ((startY + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
+        endX = (targetCol * cellSize).coerceIn(0.0, (GameConfig.COLS - 1) * cellSize)
+        endY = (targetRow * cellSize).coerceIn(0.0, (GameConfig.ROWS - 1) * cellSize)
+    }
+
+    override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        if ((1..5).random() == 1) monkey.state = IdleState(endX, endY)
+        else {
+            startX = endX
+            startY = endY
+            pickNewTarget(cellSize)
+        }
+    }
+
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        val (x, y) = getDrawPosition()
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.font = Utils.emojiCompatibleFont(10.0)
+        gc.fillText("🗺️", x + cellSize / 2, y + cellSize * 0.6)
+    }
+}
+
+class ChattingState(private val x: Double, private val y: Double) : MonkeyState {
+    private var timer = 0.0
+    private val duration = 100.0
+
+    override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        timer += GameStats.timeFactor
+        if (timer >= duration) monkey.state = IdleState(x, y)
+    }
+
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("💬", x + cellSize / 2, y + cellSize * 0.1)
+    }
+
+    override fun getDrawPosition(): Pair<Double, Double> = x to y
+}
+
+class DancingState(private val x: Double, private val y: Double) : MonkeyState {
+    private var timer = 0.0
+    private val duration = 100.0
+
+    override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+        timer += GameStats.timeFactor
+        if (timer >= duration) monkey.state = IdleState(x, y)
+    }
+
+    override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.font = Utils.emojiCompatibleFont(10.0)
+        gc.fillText("🎶", x + cellSize / 2, y + cellSize * 0.1)
+    }
+
+    override fun getDrawPosition(): Pair<Double, Double> = x to y
+}
+
+// --- Sorting Strategies ---
+
+interface SortStrategy {
+    fun getNextTask(grid: GridModel): ShuffleTask?
+}
+
+class BogoSortStrategy : SortStrategy {
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val from = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols))
+        var to: Pos
+        do { to = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols)) } while (from == to)
+        return ShuffleTask(from, to, grid.get(from))
+    }
+}
+
+class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
+    private var bubbleSortIndex = 0
+    private var bubbleSortPass = 0
+
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val totalCells = rows * cols
+        while (bubbleSortIndex < totalCells - 1 - bubbleSortPass) {
+            val indexA = bubbleSortIndex
+            val indexB = indexA + 1
+            val from = Pos(indexA / cols, indexA % cols)
+            val to = Pos(indexB / cols, indexB % cols)
+            bubbleSortIndex++
+            if (grid.get(from).name > grid.get(to).name) return ShuffleTask(from, to, grid.get(from))
+        }
+        bubbleSortIndex = 0
+        bubbleSortPass++
+        if (bubbleSortPass >= totalCells - 1) bubbleSortPass = 0
+        return null
+    }
+}
+
+// --- Monkey Class ---
+
+class Monkey(var algorithm: SortAlgorithm) {
+    var state: MonkeyState = IdleState(Random.nextDouble() * GameConfig.COLS * GameConfig.CELL_SIZE, Random.nextDouble() * GameConfig.ROWS * GameConfig.CELL_SIZE)
+    var fruitBeingCarried: Fruit? = null
+
+    init {
+        updateSpeed()
+    }
+
+    private fun updateSpeed() {
+        (state as? ProgressState)?.speedPerTick = when (algorithm) {
+            SortAlgorithm.BOGO -> 0.03
+            SortAlgorithm.BUBBLE -> 0.07
+        }
+    }
+
+    fun assignTask(task: ShuffleTask, cellSize: Double): Boolean {
+        if (!LockManager.tryLock(task.from, task.to)) return false
+        val (currentX, currentY) = state.getDrawPosition()
+        state = MovingToSourceState(task, cellSize, currentX, currentY)
         return true
     }
 
     fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        val deltaTime = 1.0 * GameStats.timeFactor
-
-        if (task != null) {
-            progress += speedPerTick * deltaTime
-            if (progress >= 1.0) {
-                progress = 0.0
-
-                val from = task!!.from
-                val to = task!!.to
-
-                when (state) {
-                    State.MOVING_TO_SOURCE -> {
-                        fruitBeingCarried = grid.get(from)
-                        grid.set(from, Fruit.EMPTY)
-
-                        // Continue from current animation position
-                        startX = endX
-                        startY = endY
-                        endX = to.col * cellSize
-                        endY = to.row * cellSize
-                        state = State.CARRYING
-                    }
-
-                    State.CARRYING -> {
-                        val oldFruit = grid.get(to)
-                        grid.set(to, fruitBeingCarried!!)
-                        fruitBeingCarried = oldFruit
-
-                        // Continue from current animation position
-                        startX = endX
-                        startY = endY
-                        endX = from.col * cellSize
-                        endY = from.row * cellSize
-                        state = State.RETURNING
-
-                        val comboCount = grid.getComboCellsAt(to).size
-                        if (comboCount >= 2) {
-                            GameStats.coins += comboCount * GameConfig.COMBO_REWARD_MULTIPLIER
-                            val comboPositions = grid.getComboCellsAt(to)
-                            if (comboPositions.isNotEmpty()) {
-                                particleSystem.add(ComboParticleEffect(comboPositions, cellSize))
-                            }
-                        }
-                    }
-
-                    State.RETURNING -> {
-                        grid.set(from, fruitBeingCarried!!)
-                        fruitBeingCarried = null
-                        LockManager.unlock(from, to)
-                        task = null
-
-                        // Set idle position to current animation position
-                        startX = endX
-                        startY = endY
-                        state = State.IDLE
-                    }
-
-                    else -> {}
-                }
-            }
-        } else {
-            when (state) {
-                State.IDLE -> {
-                    val choice = (1..4).random()
-                    when (choice) {
-                        1 -> startWandering(cellSize)
-                        2 -> startChatting()
-                        3 -> startDancing()
-                        else -> {}
-                    }
-                }
-
-                State.WANDERING -> {
-                    progress += speedPerTick * deltaTime
-                    if (progress >= 1.0) {
-                        progress = 0.0
-                        if ((1..5).random() == 1) {
-                            state = State.IDLE
-                        } else {
-                            pickNewWanderTarget(cellSize)
-                        }
-                    }
-                }
-
-                State.CHATTING, State.DANCING -> updateBehavioralState(deltaTime)
-
-                else -> {}
-            }
-        }
+        state.update(this, grid, cellSize, particleSystem)
     }
-
-    private fun updateBehavioralState(deltaTime: Double) {
-        behaviorTimer += deltaTime
-        if (behaviorTimer >= behaviorDuration) {
-            behaviorTimer = 0.0
-            state = State.IDLE
-        }
-    }
-
-    private fun startWandering(cellSize: Double) {
-        state = State.WANDERING
-        progress = 0.0
-        wanderTargetX = startX
-        wanderTargetY = startY
-        pickNewWanderTarget(cellSize)
-        endX = wanderTargetX
-        endY = wanderTargetY
-    }
-
-    private fun pickNewWanderTarget(cellSize: Double) {
-        val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
-        val targetCol = ((startX + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
-        val targetRow = ((startY + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
-
-        wanderTargetX = (targetCol * cellSize).coerceIn(0.0, (GameConfig.COLS - 1) * cellSize)
-        wanderTargetY = (targetRow * cellSize).coerceIn(0.0, (GameConfig.ROWS - 1) * cellSize)
-
-        startX = endX
-        startY = endY
-        endX = wanderTargetX
-        endY = wanderTargetY
-
-        progress = 0.0
-    }
-
-    private fun startChatting() {
-        state = State.CHATTING
-        behaviorTimer = 0.0
-    }
-
-    private fun startDancing() {
-        state = State.DANCING
-        behaviorTimer = 0.0
-    }
-
-    fun isIdle(): Boolean = (state == State.IDLE && task == null)
-
-    fun getDrawPosition(): Pair<Double, Double> {
-        val x = lerp(startX, endX, progress)
-        val y = lerp(startY, endY, progress)
-        return x to y
-    }
-
-    fun getCarriedFruit(): Fruit? = fruitBeingCarried
-
-    private fun lerp(a: Double, b: Double, t: Double): Double = a + (b - a) * t
 
     fun draw(gc: GraphicsContext, cellSize: Double) {
-        val (x, y) = getDrawPosition()
-        val fruit = getCarriedFruit()
-
-        gc.font = emojiCompatibleFont(cellSize * 0.75)
-
-        if (fruit != null) {
-            gc.fill = Color.OLIVEDRAB
-            gc.fillText(fruit.emoji, x + 2, y - 2)
-        }
-
-        gc.fill = Color.CHOCOLATE
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
-
-        gc.font = emojiCompatibleFont(10.0)
-        when (state) {
-            State.CHATTING -> gc.fillText("💬", x + (cellSize / 2), y + cellSize * 0.1)
-            State.DANCING -> gc.fillText("🎶", x + (cellSize / 2), y + cellSize * 0.1)
-            State.WANDERING -> gc.fillText("🗺️", x + (cellSize / 2), y + cellSize * 0.6)
-            State.IDLE -> gc.fillText("💤", x + (cellSize / 2), y + cellSize * 0.1)
-            else -> {}
-        }
-
-        gc.fillText(
-            when (algorithm) {
-                SortAlgorithm.BOGO -> "Bogo"
-                SortAlgorithm.BUBBLE -> "Bubble"
-            },
-            x + 5,
-            y + cellSize * 0.55 - 15
-        )
+        state.draw(gc, this, cellSize)
+        val (x, y) = state.getDrawPosition()
+        gc.font = Utils.emojiCompatibleFont(10.0)
+        gc.fillText(when (algorithm) { SortAlgorithm.BOGO -> "Bogo"; SortAlgorithm.BUBBLE -> "Bubble" }, x + 5, y + cellSize * 0.55 - 15)
     }
 
-    private fun emojiCompatibleFont(size: Double): Font {
-        val os = System.getProperty("os.name").lowercase()
-        return if (os.contains("win")) Font.font("Segoe UI Emoji", size) else Font.font(size)
-    }
+    fun isIdle(): Boolean = state is IdleState
 }
 
 // --- Game Controller ---
 
 class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS) {
     val gridModel = GridModel(rows, cols)
-    val monkeys = mutableListOf(Monkey())
+    val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO))
     val particleSystem = ParticleSystem()
+    private val strategies = mapOf(
+        SortAlgorithm.BOGO to BogoSortStrategy(),
+        SortAlgorithm.BUBBLE to BubbleSortStrategy(rows, cols)
+    )
     private var lastTickTime = System.nanoTime()
-
-    private var bubbleSortIndex = 0
-    private var bubbleSortPass = 0
 
     fun tick() {
         val now = System.nanoTime()
@@ -380,64 +381,20 @@ class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
-                when (monkey.algorithm) {
-                    SortAlgorithm.BOGO -> assignRandomTask(monkey)
-                    SortAlgorithm.BUBBLE -> assignBubbleTask(monkey)
-                }
+                val strategy = strategies[monkey.algorithm]
+                val task = strategy?.getNextTask(gridModel)
+                if (task != null) monkey.assignTask(task, GameConfig.CELL_SIZE)
             }
-            monkey.update(gridModel, cellSize = GameConfig.CELL_SIZE, particleSystem)
+            monkey.update(gridModel, GameConfig.CELL_SIZE, particleSystem)
         }
-
         particleSystem.update(deltaMs)
     }
 
-    private fun assignBubbleTask(monkey: Monkey) {
-        val totalCells = rows * cols
-
-        while (true) {
-            if (bubbleSortIndex >= totalCells - 1 - bubbleSortPass) {
-                bubbleSortIndex = 0
-                bubbleSortPass++
-                if (bubbleSortPass >= totalCells - 1) {
-                    bubbleSortPass = 0
-                }
-                return
-            }
-
-            val indexA = bubbleSortIndex
-            val indexB = bubbleSortIndex + 1
-
-            val from = Pos(indexA / cols, indexA % cols)
-            val to = Pos(indexB / cols, indexB % cols)
-
-            val fruitA = gridModel.get(from)
-            val fruitB = gridModel.get(to)
-
-            bubbleSortIndex++
-
-            if (fruitA.name > fruitB.name) {
-                monkey.assignTask(ShuffleTask(from, to, fruitA), cellSize = GameConfig.CELL_SIZE)
-                return
-            }
-        }
-    }
-
-    private fun assignRandomTask(monkey: Monkey) {
-        val from = Pos(Random.nextInt(rows), Random.nextInt(cols))
-        var to: Pos
-        do {
-            to = Pos(Random.nextInt(rows), Random.nextInt(cols))
-        } while (from == to)
-
-        val fruit = gridModel.get(from)
-        monkey.assignTask(ShuffleTask(from, to, fruit), cellSize = GameConfig.CELL_SIZE)
-    }
-
     fun buyMonkey(): Boolean {
-        val cost = (GameConfig.MONKEY_BASE_COST * monkeys.size * 1.1).toInt() // Increase cost with each monkey
+        val cost = (GameConfig.MONKEY_BASE_COST * monkeys.size * 1.1).toInt()
         if (GameStats.coins >= cost) {
             GameStats.coins -= cost
-            monkeys.add(Monkey())
+            monkeys.add(Monkey(SortAlgorithm.BOGO))
             return true
         }
         return false
@@ -458,23 +415,17 @@ class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig
 // --- Main Application ---
 
 class MonkeySortSimulatorApp : Application() {
-
     private val rows = GameConfig.ROWS
     private val cols = GameConfig.COLS
     private val cellSize = GameConfig.CELL_SIZE
-
     private val controller = GameController(rows, cols)
 
     private val buyButton = Button().apply {
-        setOnAction {
-            if (!controller.buyMonkey()) println("Not enough coins!")
-        }
+        setOnAction { if (!controller.buyMonkey()) println("Not enough coins!") }
     }
 
     private val upgradeButton = Button("Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)").apply {
-        setOnAction {
-            if (!controller.upgradeMonkey()) println("Not enough coins or no monkeys to upgrade!")
-        }
+        setOnAction { if (!controller.upgradeMonkey()) println("Not enough coins or no monkeys to upgrade!") }
     }
 
     private val debugBogoButton = Button("Debug: BogoSort all").apply {
@@ -493,9 +444,7 @@ class MonkeySortSimulatorApp : Application() {
 
     private val debugSpawnButton = Button("Debug: Spawn 50 Monkeys").apply {
         setOnAction {
-            repeat(50) {
-                controller.monkeys.add(Monkey().apply { algorithm = SortAlgorithm.BOGO })
-            }
+            repeat(50) { controller.monkeys.add(Monkey(SortAlgorithm.BOGO)) }
             println("Spawned 50 new monkeys")
         }
     }
@@ -543,7 +492,6 @@ class MonkeySortSimulatorApp : Application() {
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
         val grid = controller.gridModel.getGridCopy()
-
         gc.fill = Color.OLIVEDRAB
         gc.font = emojiCompatibleFont(cellSize * 0.75)
         for (r in 0 until rows) {
@@ -555,10 +503,7 @@ class MonkeySortSimulatorApp : Application() {
             }
         }
 
-        for (monkey in controller.monkeys) {
-            monkey.draw(gc, cellSize)
-        }
-
+        for (monkey in controller.monkeys) monkey.draw(gc, cellSize)
         controller.particleSystem.render(gc, cellSize)
 
         gc.fill = Color.DARKGREEN
@@ -569,8 +514,7 @@ class MonkeySortSimulatorApp : Application() {
 
         buyButton.isDisable = GameStats.coins < GameConfig.MONKEY_BASE_COST * controller.monkeys.size
         buyButton.text = "Buy Monkey (${GameConfig.MONKEY_BASE_COST * controller.monkeys.size} coins)"
-        upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST ||
-                controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
+        upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
             gc.fill = Color.DODGERBLUE
