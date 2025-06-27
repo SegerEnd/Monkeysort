@@ -9,9 +9,6 @@ import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
-import javafx.scene.paint.CycleMethod
-import javafx.scene.paint.RadialGradient
-import javafx.scene.text.Font
 import javafx.stage.Stage
 import kotlin.random.Random
 
@@ -47,7 +44,7 @@ data class Pos(val row: Int, val col: Int)
 
 data class ShuffleTask(val from: Pos, val to: Pos, val fruit: Fruit)
 
-enum class SortAlgorithm { BOGO, BUBBLE }
+enum class SortAlgorithm { BOGO, BUBBLE, INSERTION }
 
 class GridModel(val rows: Int, val cols: Int) {
     private val grid = Array(rows) { Array(cols) { Fruit.random() } }
@@ -288,6 +285,8 @@ class ChattingState(private val x: Double, private val y: Double) : MonkeyState 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.font = Utils.emojiCompatibleFont(10.0)
         gc.fillText("💬", x + cellSize / 2, y + cellSize * 0.1)
     }
 
@@ -350,9 +349,49 @@ class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
     }
 }
 
-// --- Monkey Class ---
+class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
+    private var sortedIndex = 1
+    private var compareIndex = 1
 
-class Monkey(var algorithm: SortAlgorithm) {
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val totalCells = rows * cols
+
+        if (sortedIndex >= totalCells) {
+            sortedIndex = 1
+            compareIndex = 1
+            return null
+        }
+
+        if (compareIndex > 0) {
+            val indexA = compareIndex - 1
+            val indexB = compareIndex
+
+            val from = Pos(indexA / cols, indexA % cols)
+            val to = Pos(indexB / cols, indexB % cols)
+
+            if (grid.get(from).name > grid.get(to).name) {
+                compareIndex--
+                return ShuffleTask(from, to, grid.get(from))
+            } else {
+                sortedIndex++
+                compareIndex = sortedIndex
+            }
+        } else {
+            sortedIndex++
+            compareIndex = sortedIndex
+        }
+
+        return null
+    }
+}
+
+class Monkey(algorithm: SortAlgorithm) {
+    var algorithm: SortAlgorithm = algorithm
+        set(value) {
+            field = value
+            updateSpeed()
+        }
+
     var state: MonkeyState = IdleState(Random.nextDouble() * GameConfig.COLS * GameConfig.CELL_SIZE, Random.nextDouble() * GameConfig.ROWS * GameConfig.CELL_SIZE)
     var fruitBeingCarried: Fruit? = null
 
@@ -364,6 +403,7 @@ class Monkey(var algorithm: SortAlgorithm) {
         (state as? ProgressState)?.speedPerTick = when (algorithm) {
             SortAlgorithm.BOGO -> 0.03
             SortAlgorithm.BUBBLE -> 0.07
+            SortAlgorithm.INSERTION -> 1.5
         }
     }
 
@@ -382,7 +422,14 @@ class Monkey(var algorithm: SortAlgorithm) {
         state.draw(gc, this, cellSize)
         val (x, y) = state.getDrawPosition()
         gc.font = Utils.emojiCompatibleFont(10.0)
-        gc.fillText(when (algorithm) { SortAlgorithm.BOGO -> "Bogo"; SortAlgorithm.BUBBLE -> "Bubble" }, x + 5, y + cellSize * 0.55 - 15)
+        gc.fillText(
+            when (algorithm) {
+                SortAlgorithm.BOGO -> "Bogo"
+                SortAlgorithm.BUBBLE -> "Bubble"
+                SortAlgorithm.INSERTION -> "Insert"
+            },
+            x + 5, y + cellSize * 0.55 - 15
+        )
     }
 
     fun isIdle(): Boolean = state is IdleState
@@ -396,7 +443,8 @@ class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig
     val particleSystem = ParticleSystem()
     private val strategies = mapOf(
         SortAlgorithm.BOGO to BogoSortStrategy(),
-        SortAlgorithm.BUBBLE to BubbleSortStrategy(rows, cols)
+        SortAlgorithm.BUBBLE to BubbleSortStrategy(rows, cols),
+        SortAlgorithm.INSERTION to InsertionSortStrategy(rows, cols)
     )
     private var lastTickTime = System.nanoTime()
 
@@ -445,6 +493,7 @@ class MonkeySortSimulatorApp : Application() {
     private val cols = GameConfig.COLS
     private val cellSize = GameConfig.CELL_SIZE
     private val controller = GameController(rows, cols)
+    private val sortStrip = SortStrip()
 
     private val buyButton = Button().apply {
         setOnAction { if (!controller.buyMonkey()) println("Not enough coins!") }
@@ -468,10 +517,17 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugSpawnButton = Button("Debug: Spawn 50 Monkeys").apply {
+    private val debugInsertionButton = Button("Debug: InsertionSort all").apply {
         setOnAction {
-            repeat(50) { controller.monkeys.add(Monkey(SortAlgorithm.BOGO)) }
-            println("Spawned 50 new monkeys")
+            controller.monkeys.forEach { it.algorithm = SortAlgorithm.INSERTION }
+            println("All monkeys set to InsertionSort")
+        }
+    }
+
+    private val debugSpawnButton = Button("Debug: Spawn 5 Monkeys").apply {
+        setOnAction {
+            repeat(5) { controller.monkeys.add(Monkey(SortAlgorithm.BOGO)) }
+            println("Spawned 5 new monkeys")
         }
     }
 
@@ -503,7 +559,7 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton, debugSpeedButton, debugCompleteButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugCompleteButton)
         root.center = canvas
 
         val scene = Scene(root)
@@ -522,73 +578,6 @@ class MonkeySortSimulatorApp : Application() {
                 }
             }
         }.start()
-    }
-
-    fun drawSortStrip(gc: GraphicsContext, grid: GridModel) {
-        val stripWidth = gc.canvas.width
-        val stripHeight = GameConfig.STRIP_HEIGHT
-
-        val fruits = Fruit.values().filter { it != Fruit.EMPTY }
-        val count = fruits.size
-        val spacing = 2.0
-        val totalSpacing = spacing * (count - 1)
-        val squareWidth = (stripWidth - totalSpacing) / count
-        val squareHeight = stripHeight
-
-        val fontSize = 18.0
-        gc.font = Font.font(fontSize)
-
-        for ((index, fruit) in fruits.withIndex()) {
-            val maxCount = grid.getSameFruitCount(fruit)
-            val neighborCount = grid.getSameFruitNeighborCount(fruit)
-            val grayScaleFactor = if (maxCount > 0) neighborCount.toDouble() / maxCount else 0.0
-
-            val x = index * (squareWidth + spacing)
-            val y = gc.canvas.height - stripHeight
-
-            fun blendColors(c1: Color, c2: Color, t: Double): Color {
-                val r = c1.red * (1 - t) + c2.red * t
-                val g = c1.green * (1 - t) + c2.green * t
-                val b = c1.blue * (1 - t) + c2.blue * t
-                return Color.color(r, g, b)
-            }
-
-            val centerColor = blendColors(Color.WHITE, fruit.color, grayScaleFactor)
-            // edge color is a little bit more saturated than the center color
-            val edgeColor = blendColors(Color.gray(0.8), fruit.color, grayScaleFactor * 0.8)
-
-            val gradient = RadialGradient(
-                0.0, 0.0,
-                x + squareWidth / 2, y + squareHeight / 2,
-                squareWidth / 1.5,
-                false, CycleMethod.NO_CYCLE,
-                javafx.scene.paint.Stop(0.0, centerColor),
-                javafx.scene.paint.Stop(1.0, edgeColor)
-            )
-
-            gc.fill = gradient
-            gc.fillRect(x, y, squareWidth, squareHeight)
-
-            // Use Text node to measure emoji width
-            val emojiText = javafx.scene.text.Text(fruit.emoji)
-            emojiText.font = gc.font
-            val textWidth = emojiText.layoutBounds.width
-            val textHeight = emojiText.layoutBounds.height
-
-            val textX = x + (squareWidth - textWidth) / 2
-            val textY = y + (squareHeight + textHeight) / 2 - 4 // fine-tuned vertical centering
-
-            gc.fill = centerColor
-            gc.fillText(fruit.emoji, textX, textY)
-
-            if (maxCount == neighborCount) {
-                gc.stroke = Color.BLACK
-                gc.lineWidth = 2.0
-                gc.strokeRect(x, y, squareWidth, squareHeight)
-                gc.fill = Color.LIMEGREEN
-                gc.fillText("✅", x + squareWidth - 20, y + squareHeight - 5)
-            }
-        }
     }
 
     private fun draw(gc: GraphicsContext) {
@@ -616,7 +605,7 @@ class MonkeySortSimulatorApp : Application() {
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
         gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 5)
 
-        drawSortStrip(gc, controller.gridModel)
+        sortStrip.draw(gc, controller.gridModel)
 
         buyButton.isDisable = GameStats.coins < GameConfig.MONKEY_BASE_COST * controller.monkeys.size
         buyButton.text = "Buy Monkey (${GameConfig.MONKEY_BASE_COST * controller.monkeys.size} coins)"
