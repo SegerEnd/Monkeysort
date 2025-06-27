@@ -104,7 +104,6 @@ class GridModel(val rows: Int, val cols: Int) {
     }
 }
 
-// Shared Lock Manager
 object LockManager {
     private val lockedPositions = mutableSetOf<Pos>()
 
@@ -266,14 +265,6 @@ class Monkey {
                 else -> {}
             }
         }
-    }
-
-    private fun setMovement(from: Pos, to: Pos, cellSize: Double) {
-        startX = from.col * cellSize
-        startY = from.row * cellSize
-        endX = to.col * cellSize
-        endY = to.row * cellSize
-        progress = 0.0
     }
 
     private fun updateBehavioralState(deltaTime: Double) {
@@ -474,7 +465,7 @@ class MonkeySortSimulatorApp : Application() {
 
     private val controller = GameController(rows, cols)
 
-    private val buyButton = Button("Buy Monkey").apply {
+    private val buyButton = Button().apply {
         setOnAction {
             if (!controller.buyMonkey()) println("Not enough coins!")
         }
@@ -486,14 +477,14 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugBogoButton = Button("Debug: Set All to BogoSort").apply {
+    private val debugBogoButton = Button("Debug: BogoSort all").apply {
         setOnAction {
             controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
             println("All monkeys set to BogoSort")
         }
     }
 
-    private val debugBubbleButton = Button("Debug: Set All to BubbleSort").apply {
+    private val debugBubbleButton = Button("Debug: BubbleSort all").apply {
         setOnAction {
             controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
             println("All monkeys set to BubbleSort")
