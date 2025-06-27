@@ -210,7 +210,7 @@ class Monkey(algorithm: SortAlgorithm) {
         (state as? ProgressState)?.speedPerTick = when (algorithm) {
             SortAlgorithm.BOGO -> 0.03
             SortAlgorithm.BUBBLE -> 0.07
-            SortAlgorithm.INSERTION -> 1.5
+            SortAlgorithm.INSERTION -> 0.07
         }
     }
 

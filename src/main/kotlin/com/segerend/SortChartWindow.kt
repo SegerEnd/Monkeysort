@@ -14,17 +14,17 @@ class SortChartWindow(private val controller: GameController) {
     private val xAxis = CategoryAxis()
     private val yAxis = NumberAxis()
     private val series = XYChart.Series<String, Number>()
-    private val lineChart = LineChart<String, Number>(xAxis, yAxis)
+    private val barChart = BarChart<String, Number>(xAxis, yAxis)
 
     init {
-        lineChart.title = "Sorting Progress"
-        lineChart.legendSide = Side.RIGHT
+        barChart.title = "Sorting Progress"
+        barChart.legendSide = Side.RIGHT
         xAxis.label = "Index"
         yAxis.label = "Fruit Ordinal"
-        lineChart.data.add(series)
-        lineChart.animated = true
+        barChart.data.add(series)
+        barChart.animated = false
 
-        val root = BorderPane(lineChart)
+        val root = BorderPane(barChart)
         val scene = Scene(root, 600.0, 400.0)
         stage.scene = scene
         stage.title = "Sorting Chart"
@@ -34,30 +34,43 @@ class SortChartWindow(private val controller: GameController) {
     }
 
     private fun startUpdating() {
-        val allFruitsSorted = Fruit.values().sortedBy { it.name }
+        // Filter out Fruit.EMPTY when generating sorted list
+        val allFruitsSorted = Fruit.values()
+            .filter { it != Fruit.EMPTY }
+            .sortedBy { it.name }
 
-        // Initialize data once
         Platform.runLater {
             val grid = controller.gridModel.getGridCopy()
             val flatList = grid.flatten()
 
             series.data.clear()
+
             flatList.forEachIndexed { index, fruit ->
-                val rank = allFruitsSorted.indexOf(fruit)
-                val data = XYChart.Data<String, Number>(index.toString(), rank.toDouble() as Number)
-                series.data.add(data)
+                if (fruit != Fruit.EMPTY) {
+                    val rank = allFruitsSorted.indexOf(fruit).toDouble()
+                    val data = XYChart.Data<String, Number>(index.toString(), rank)
+                    series.data.add(data)
+                } else {
+                    // Add a zero-height bar or skip entirely.
+                    // If skipping, bar positions may shift. If you want consistency, add a "null" or 0 bar.
+                    val data = XYChart.Data<String, Number>(index.toString(), 0)
+                    series.data.add(data)
+                }
             }
         }
 
-        fixedRateTimer("chart-updater", daemon = true, initialDelay = 500, period = 250) {
+        fixedRateTimer("chart-updater", daemon = true, initialDelay = 500, period = 100) {
             val newGrid = controller.gridModel.getGridCopy().flatten()
 
             Platform.runLater {
-                // Update existing data points, don't clear and recreate
                 newGrid.forEachIndexed { index, fruit ->
                     if (index < series.data.size) {
-                        val rank = allFruitsSorted.indexOf(fruit)
-                        series.data[index].yValue = rank.toDouble() as Number
+                        if (fruit != Fruit.EMPTY) {
+                            val targetRank = allFruitsSorted.indexOf(fruit).toDouble()
+                            series.data[index].yValue = targetRank
+                        } else {
+                            series.data[index].yValue = 0 // Optional: or leave unchanged
+                        }
                     }
                 }
             }
