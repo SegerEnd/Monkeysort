@@ -6,10 +6,14 @@ import javafx.scene.Scene
 import javafx.scene.chart.*
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
+import javafx.scene.control.Button
+import javafx.geometry.Pos
+import javafx.scene.layout.HBox
+import javafx.geometry.Insets
+
 import kotlin.concurrent.fixedRateTimer
 import java.util.logging.Level
 import java.util.logging.Logger
-
 
 class SortChartWindow private constructor(private val controller: GameController) {
     val stage = Stage()
@@ -21,6 +25,24 @@ class SortChartWindow private constructor(private val controller: GameController
         val series = XYChart.Series<String, Number>()
         val barChart = BarChart<String, Number>(xAxis, yAxis)
 
+        barChart.animated = false
+
+        val toggleButton = Button("Enable Animations")
+        toggleButton.setOnAction {
+            barChart.animated = !barChart.animated
+            toggleButton.text = if (barChart.animated) "Disable Animations" else "Enable Animations"
+        }
+
+        val buttonBox = HBox(toggleButton)
+        buttonBox.alignment = Pos.CENTER
+        buttonBox.padding = Insets(10.0)
+
+        val root = BorderPane()
+        root.center = barChart
+        root.bottom = buttonBox
+
+        val scene = Scene(root, 600.0, 400.0)
+
         barChart.title = "Sorting Chart"
         barChart.legendSide = Side.RIGHT
         xAxis.label = "Index in Grid"
@@ -28,8 +50,6 @@ class SortChartWindow private constructor(private val controller: GameController
         barChart.data.add(series)
         barChart.animated = false
 
-        val root = BorderPane(barChart)
-        val scene = Scene(root, 600.0, 400.0)
         stage.scene = scene
         stage.title = "Sorting Chart"
 
