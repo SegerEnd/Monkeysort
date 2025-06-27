@@ -9,6 +9,8 @@ import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
+import javafx.scene.paint.CycleMethod
+import javafx.scene.paint.RadialGradient
 import javafx.scene.text.Font
 import javafx.stage.Stage
 import kotlin.random.Random
@@ -81,33 +83,19 @@ class GridModel(val rows: Int, val cols: Int) {
     }
 
     fun getSameFruitNeighborCount(fruit: Fruit): Int {
-        // get the number of adjacent cells only left and right of the 1d grid and return the highest count of neighbouring same fruits
+        val flatGrid = grid.flatten()
         var maxCount = 0
-        for (r in 0 until rows) {
-            var count = 0
-            for (c in 0 until cols) {
-                if (grid[r][c] == fruit) {
-                    count++
-                } else {
-                    maxCount = maxOf(maxCount, count)
-                    count = 0
-                }
+        var count = 0
+
+        for (cell in flatGrid) {
+            if (cell == fruit) {
+                count++
+            } else {
+                maxCount = maxOf(maxCount, count)
+                count = 0
             }
-            maxCount = maxOf(maxCount, count)
         }
-        for (c in 0 until cols) {
-            var count = 0
-            for (r in 0 until rows) {
-                if (grid[r][c] == fruit) {
-                    count++
-                } else {
-                    maxCount = maxOf(maxCount, count)
-                    count = 0
-                }
-            }
-            maxCount = maxOf(maxCount, count)
-        }
-        return maxCount
+        return maxOf(maxCount, count) // Handle streak at the end
     }
 }
 
@@ -494,12 +482,28 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    // debug button to complete the sorting based on fruit name alphabetically immediately
+    private val debugCompleteButton = Button("Debug: Complete Sorting").apply {
+        setOnAction {
+            val sortedFruits = controller.gridModel.getGridCopy().flatten().sortedBy { it.name }
+            for (r in 0 until rows) {
+                for (c in 0 until cols) {
+                    controller.gridModel.set(Pos(r, c), sortedFruits[r * cols + c])
+                }
+            }
+            // set all monkeys to BubbleSort for visual consistency
+            controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+
+            println("Grid sorted alphabetically")
+        }
+    }
+
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton, debugSpeedButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugSpawnButton, debugSpeedButton, debugCompleteButton)
         root.center = canvas
 
         val scene = Scene(root)
@@ -521,34 +525,69 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     fun drawSortStrip(gc: GraphicsContext, grid: GridModel) {
-        // draw for each fruit type one square with fixed dims in the sort strip and fill it with the color of the fruit based use getSameFruitNeighborCount
-        // verdeel alle vierkanten over de breedte van de strip behalve EMPTY
         val stripWidth = gc.canvas.width
         val stripHeight = GameConfig.STRIP_HEIGHT
 
-        // calculte the spacing between the squares
+        val fruits = Fruit.values().filter { it != Fruit.EMPTY }
+        val count = fruits.size
         val spacing = 2.0
-        val squareWidth = (stripWidth - spacing * (Fruit.values().size - 1)) / Fruit.values().size
+        val totalSpacing = spacing * (count - 1)
+        val squareWidth = (stripWidth - totalSpacing) / count
+        val squareHeight = stripHeight
 
-        for (fruit in Fruit.values()) {
-            if (fruit == Fruit.EMPTY) continue
+        val fontSize = 18.0
+        gc.font = Font.font(fontSize)
+
+        for ((index, fruit) in fruits.withIndex()) {
             val maxCount = grid.getSameFruitCount(fruit)
-            val neighborcount = grid.getSameFruitNeighborCount(fruit)
+            val neighborCount = grid.getSameFruitNeighborCount(fruit)
+            val grayScaleFactor = if (maxCount > 0) neighborCount.toDouble() / maxCount else 0.0
 
-            // calculate the gray scale factor based on the neighbor count so if the maxcount is the same as the neighborcount the grayScaleFactor is 0.0
-            val grayScaleFactor = if (maxCount > 0) neighborcount.toDouble() / maxCount else 0.0
-            val x = Fruit.values().indexOf(fruit) * (squareWidth + spacing)
+            val x = index * (squareWidth + spacing)
+            val y = gc.canvas.height - stripHeight
 
-            println("Fruit: ${fruit.name}, Count: $neighborcount, Max: $maxCount, GrayScaleFactor: $grayScaleFactor")
+            fun blendColors(c1: Color, c2: Color, t: Double): Color {
+                val r = c1.red * (1 - t) + c2.red * t
+                val g = c1.green * (1 - t) + c2.green * t
+                val b = c1.blue * (1 - t) + c2.blue * t
+                return Color.color(r, g, b)
+            }
 
-            gc.fill = Color.gray(grayScaleFactor, 0.5) // Use gray scale based on neighbor count
+            val centerColor = blendColors(Color.WHITE, fruit.color, grayScaleFactor)
+            // edge color is a little bit more saturated than the center color
+            val edgeColor = blendColors(Color.gray(0.8), fruit.color, grayScaleFactor * 0.8)
 
-//            gc.fill = fruit.color
+            val gradient = RadialGradient(
+                0.0, 0.0,
+                x + squareWidth / 2, y + squareHeight / 2,
+                squareWidth / 1.5,
+                false, CycleMethod.NO_CYCLE,
+                javafx.scene.paint.Stop(0.0, centerColor),
+                javafx.scene.paint.Stop(1.0, edgeColor)
+            )
 
-            gc.fillRect(x, gc.canvas.height - stripHeight, squareWidth, stripHeight)
+            gc.fill = gradient
+            gc.fillRect(x, y, squareWidth, squareHeight)
 
-            gc.fill = Color.LIMEGREEN
-            gc.fillText(fruit.emoji, x + 2, gc.canvas.height - stripHeight + 12)
+            // Use Text node to measure emoji width
+            val emojiText = javafx.scene.text.Text(fruit.emoji)
+            emojiText.font = gc.font
+            val textWidth = emojiText.layoutBounds.width
+            val textHeight = emojiText.layoutBounds.height
+
+            val textX = x + (squareWidth - textWidth) / 2
+            val textY = y + (squareHeight + textHeight) / 2 - 4 // fine-tuned vertical centering
+
+            gc.fill = centerColor
+            gc.fillText(fruit.emoji, textX, textY)
+
+            if (maxCount == neighborCount) {
+                gc.stroke = Color.BLACK
+                gc.lineWidth = 2.0
+                gc.strokeRect(x, y, squareWidth, squareHeight)
+                gc.fill = Color.LIMEGREEN
+                gc.fillText("✅", x + squareWidth - 20, y + squareHeight - 5)
+            }
         }
     }
 
