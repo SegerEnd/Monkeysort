@@ -45,7 +45,7 @@ abstract class ProgressState : MonkeyState {
 
 class IdleState(private val x: Double, private val y: Double) : MonkeyState {
     override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        when ((1..4).random()) {
+        when ((1..10).random()) {
             1 -> monkey.state = WanderingState(x, y, cellSize)
             2 -> monkey.state = ChattingState(x, y)
             3 -> monkey.state = DancingState(x, y)
@@ -55,7 +55,7 @@ class IdleState(private val x: Double, private val y: Double) : MonkeyState {
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
         gc.font = Utils.emojiCompatibleFont(10.0)
         gc.fillText("💤", x + cellSize / 2, y + cellSize * 0.1)
     }
@@ -82,7 +82,7 @@ class MovingToSourceState(private val task: ShuffleTask, private val cellSize: D
         val (x, y) = getDrawPosition()
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
     }
 }
 
@@ -113,7 +113,7 @@ class CarryingState(private val task: ShuffleTask, private val cellSize: Double,
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
         gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
         gc.fill = Color.CHOCOLATE
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
     }
 }
 
@@ -138,7 +138,7 @@ class ReturningState(private val task: ShuffleTask, private val cellSize: Double
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
         gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
         gc.fill = Color.CHOCOLATE
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
     }
 }
 
@@ -170,7 +170,7 @@ class WanderingState(startX: Double, startY: Double, cellSize: Double) : Progres
         val (x, y) = getDrawPosition()
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
         gc.font = Utils.emojiCompatibleFont(10.0)
         gc.fillText("🗺️", x + cellSize / 2, y + cellSize * 0.6)
     }
@@ -188,7 +188,7 @@ class ChattingState(private val x: Double, private val y: Double) : MonkeyState 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
         gc.font = Utils.emojiCompatibleFont(10.0)
         gc.fillText("💬", x + cellSize / 2, y + cellSize * 0.1)
     }
@@ -208,7 +208,7 @@ class DancingState(private val x: Double, private val y: Double) : MonkeyState {
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         gc.fill = Color.CHOCOLATE
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText("🐒", x + 2, y + cellSize * 0.55)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
         gc.font = Utils.emojiCompatibleFont(10.0)
         gc.fillText("🎶", x + cellSize / 2, y + cellSize * 0.1)
     }

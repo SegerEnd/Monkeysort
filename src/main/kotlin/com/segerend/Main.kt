@@ -26,6 +26,7 @@ object GameConfig {
     const val COMBO_REWARD_MULTIPLIER = 15
     const val MAX_FPS = 60
     const val STRIP_HEIGHT = 30.0
+    const val DEFAULT_MONKEY = "🐒"
 }
 
 // --- Core Game Models ---
@@ -192,12 +193,22 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
     }
 }
 
+fun makeStrategy(algorithm: SortAlgorithm, rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS): SortStrategy = when (algorithm) {
+    SortAlgorithm.BOGO -> BogoSortStrategy()
+    SortAlgorithm.BUBBLE -> BubbleSortStrategy(rows, cols)
+    SortAlgorithm.INSERTION -> InsertionSortStrategy(rows, cols)
+}
+
 class Monkey(algorithm: SortAlgorithm) {
     var algorithm: SortAlgorithm = algorithm
         set(value) {
             field = value
+            strategy = makeStrategy(value, GameConfig.ROWS, GameConfig.COLS)
             updateSpeed()
         }
+
+    var strategy: SortStrategy = makeStrategy(algorithm, GameConfig.ROWS, GameConfig.COLS)
+        private set
 
     var state: MonkeyState = IdleState(Random.nextDouble() * GameConfig.COLS * GameConfig.CELL_SIZE, Random.nextDouble() * GameConfig.ROWS * GameConfig.CELL_SIZE)
     var fruitBeingCarried: Fruit? = null
@@ -239,20 +250,17 @@ class Monkey(algorithm: SortAlgorithm) {
         )
     }
 
-    fun isIdle(): Boolean = state is IdleState
+    fun isIdle(): Boolean {
+        return state is IdleState || state is WanderingState || state is ChattingState
+    }
 }
 
 // --- Game Controller ---
 
-class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS) {
+class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     val gridModel = GridModel(rows, cols)
-    val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO))
+    val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO)) // Start with one monkey
     val particleSystem = ParticleSystem()
-    private val strategies = mapOf(
-        SortAlgorithm.BOGO to BogoSortStrategy(),
-        SortAlgorithm.BUBBLE to BubbleSortStrategy(rows, cols),
-        SortAlgorithm.INSERTION to InsertionSortStrategy(rows, cols)
-    )
     private var lastTickTime = System.nanoTime()
 
     fun tick() {
@@ -262,8 +270,7 @@ class GameController(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
-                val strategy = strategies[monkey.algorithm]
-                val task = strategy?.getNextTask(gridModel)
+                val task = monkey.strategy.getNextTask(gridModel)
                 if (task != null) monkey.assignTask(task, GameConfig.CELL_SIZE)
             }
             monkey.update(gridModel, GameConfig.CELL_SIZE, particleSystem)
