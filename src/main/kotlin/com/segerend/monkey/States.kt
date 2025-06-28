@@ -22,19 +22,19 @@ interface MonkeyState {
 }
 
 abstract class ProgressState : MonkeyState {
-    protected var progress = 0.0
-    var speedPerTick = 0.03
+    internal var progress = 0.0
     protected var startX = 0.0
     protected var startY = 0.0
     protected var endX = 0.0
     protected var endY = 0.0
 
+    // Public getter and setter for progress
+    fun getProgress(): Double = progress
+    fun setProgress(value: Double) { progress = value }
+
+    // Progress is now handled by Monkey, so update does nothing
     override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        progress += speedPerTick * GameStats.timeFactor
-        if (progress >= 1.0) {
-            progress = 0.0
-            onProgressComplete(monkey, grid, cellSize, particleSystem)
-        }
+        // Empty, as progress is managed by Monkey
     }
 
     abstract fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem)

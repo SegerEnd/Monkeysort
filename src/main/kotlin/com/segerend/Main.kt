@@ -205,7 +205,7 @@ class Monkey(algorithm: SortAlgorithm) {
         set(value) {
             field = value
             strategy = makeStrategy(value, GameConfig.ROWS, GameConfig.COLS)
-            updateSpeed()
+            // No need for updateSpeed() anymore
         }
 
     var strategy: SortStrategy = makeStrategy(algorithm, GameConfig.ROWS, GameConfig.COLS)
@@ -214,16 +214,11 @@ class Monkey(algorithm: SortAlgorithm) {
     var state: MonkeyState = IdleState(Random.nextDouble() * GameConfig.COLS * GameConfig.CELL_SIZE, Random.nextDouble() * GameConfig.ROWS * GameConfig.CELL_SIZE)
     var fruitBeingCarried: Fruit? = null
 
-    init {
-        updateSpeed()
-    }
-
-    private fun updateSpeed() {
-        (state as? ProgressState)?.speedPerTick = when (algorithm) {
-            SortAlgorithm.BOGO -> 0.03
-            SortAlgorithm.BUBBLE -> 0.07
-            SortAlgorithm.INSERTION -> 0.07
-        }
+    // Define speed per tick based on algorithm
+    private fun getSpeedPerTick(): Double = when (algorithm) {
+        SortAlgorithm.BOGO -> 0.03
+        SortAlgorithm.BUBBLE -> 0.07
+        SortAlgorithm.INSERTION -> 0.07
     }
 
     fun assignTask(task: ShuffleTask, cellSize: Double): Boolean {
@@ -234,7 +229,27 @@ class Monkey(algorithm: SortAlgorithm) {
     }
 
     fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        state.update(this, grid, cellSize, particleSystem)
+        if (state is ProgressState) {
+            // Calculate total progress available this tick
+            var remainingProgress = getSpeedPerTick() * GameStats.timeFactor
+            while (remainingProgress > 0 && state is ProgressState) {
+                val currentState = state as ProgressState
+                val progressNeeded = 1.0 - currentState.getProgress()
+                if (remainingProgress >= progressNeeded) {
+                    // Complete the state
+                    currentState.setProgress(1.0)
+                    currentState.onProgressComplete(this, grid, cellSize, particleSystem)
+                    remainingProgress -= progressNeeded
+                } else {
+                    // Partially advance progress
+                    currentState.setProgress(currentState.getProgress() + remainingProgress)
+                    remainingProgress = 0.0
+                }
+            }
+        } else {
+            // For non-ProgressState, call update once per tick
+            state.update(this, grid, cellSize, particleSystem)
+        }
     }
 
     fun draw(gc: GraphicsContext, cellSize: Double) {
