@@ -398,6 +398,12 @@ class MonkeySortSimulatorApp : Application() {
         val scene = Scene(root)
         primaryStage.title = "Monkeysort 🐒"
         primaryStage.scene = scene
+
+        // Exit the application when the main window is closed
+        primaryStage.setOnCloseRequest {
+            javafx.application.Platform.exit()
+        }
+
         primaryStage.show()
 
         var lastFrameTime = System.nanoTime()

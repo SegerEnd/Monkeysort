@@ -145,14 +145,14 @@ class WanderingState(startX: Double, startY: Double, cellSize: Double) : Progres
         pickNewTarget(cellSize)
     }
 
-    private fun pickNewTarget(cellSize: Double) {
+    private fun pickNewTarget(cellSize: Double = GameConfig.CELL_SIZE) {
         val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
-        // make sure it is within bounds
         endX = startX + Random.nextDouble(-wanderRadius, wanderRadius)
         endY = startY + Random.nextDouble(-wanderRadius, wanderRadius)
-        // clamp to grid bounds
+        // Ensure the target is within bounds
         endX = endX.coerceIn(0.0, GameConfig.COLS * cellSize - cellSize)
         endY = endY.coerceIn(0.0, GameConfig.ROWS * cellSize - cellSize)
+        progress = 0.0
     }
 
     override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
