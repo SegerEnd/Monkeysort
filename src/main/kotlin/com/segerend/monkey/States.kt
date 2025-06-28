@@ -28,10 +28,6 @@ abstract class ProgressState : MonkeyState {
     protected var endX = 0.0
     protected var endY = 0.0
 
-    // Public getter and setter for progress
-    fun getProgress(): Double = progress
-    fun setProgress(value: Double) { progress = value }
-
     // Progress is now handled by Monkey, so update does nothing
     override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
         // Empty, as progress is managed by Monkey
@@ -151,10 +147,12 @@ class WanderingState(startX: Double, startY: Double, cellSize: Double) : Progres
 
     private fun pickNewTarget(cellSize: Double) {
         val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
-        val targetCol = ((startX + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
-        val targetRow = ((startY + wanderRadius * (Random.nextDouble() - 0.5)) / cellSize).toInt()
-        endX = (targetCol * cellSize).coerceIn(0.0, (GameConfig.COLS - 1) * cellSize)
-        endY = (targetRow * cellSize).coerceIn(0.0, (GameConfig.ROWS - 1) * cellSize)
+        // make sure it is within bounds
+        endX = startX + Random.nextDouble(-wanderRadius, wanderRadius)
+        endY = startY + Random.nextDouble(-wanderRadius, wanderRadius)
+        // clamp to grid bounds
+        endX = endX.coerceIn(0.0, GameConfig.COLS * cellSize - cellSize)
+        endY = endY.coerceIn(0.0, GameConfig.ROWS * cellSize - cellSize)
     }
 
     override fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {

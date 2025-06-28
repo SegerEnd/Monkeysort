@@ -32,12 +32,21 @@ object GameConfig {
 // --- Core Game Models ---
 
 enum class Fruit(val emoji: String, val color: Color) {
-    APPLE("🍎", Color.RED), BANANA("🍌", Color.YELLOW), GRAPE("🍇", Color.PURPLE),
-    ORANGE("🍊", Color.ORANGE), WATERMELON("🍉", Color.GREEN),
-    PINEAPPLE("🍍", Color.YELLOW), STRAWBERRY("🍓", Color.RED),
-    CHERRY("🍒", Color.RED), KIWI("🥝", Color.GREEN), PEACH("🍑", Color.PEACHPUFF),
-    MANGO("🥭", Color.ORANGE), BLUEBERRY("🫐", Color.BLUE), LEMON("🍋", Color.YELLOW),
-    LETTUCE("🥬", Color.GREEN), EMPTY(" ", Color.TRANSPARENT);
+    APPLE("🍎", Color.RED),
+    BANANA("🍌", Color.YELLOW),
+    GRAPE("🍇", Color.PURPLE),
+    ORANGE("🍊", Color.ORANGE),
+    WATERMELON("🍉", Color.GREEN),
+    PINEAPPLE("🍍", Color.GOLD),
+    STRAWBERRY("🍓", Color.CRIMSON),
+    CHERRY("🍒", Color.DARKRED),
+    KIWI("🥝", Color.OLIVEDRAB),
+    PEACH("🍑", Color.PEACHPUFF),
+    MANGO("🥭", Color.DARKORANGE),
+    BLUEBERRY("🫐", Color.BLUE),
+    LEMON("🍋", Color.LEMONCHIFFON),
+    LETTUCE("🥬", Color.FORESTGREEN),
+    EMPTY(" ", Color.TRANSPARENT);
 
     companion object {
         fun random(): Fruit = values().filter { it != EMPTY }.random()
@@ -165,7 +174,6 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
         val totalCells = rows * cols
 
         if (sortedIndex >= totalCells) {
-            // Reset if needed or return null if done
             return null
         }
 
@@ -176,21 +184,20 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
             val posB = Pos(indexB / cols, indexB % cols)
 
             if (grid.get(posA).name > grid.get(posB).name) {
-                // Swap and move left
                 compareIndex--
                 return ShuffleTask(posA, posB, grid.get(posA))
             } else {
-                // No swap needed, move to next outer loop
+                // No more left swaps needed
                 sortedIndex++
                 compareIndex = sortedIndex
+                return getNextTask(grid) // Immediately continue with the next insertion
             }
         } else {
-            // Finished inserting this element
+            // Reached beginning; move to next outer loop
             sortedIndex++
             compareIndex = sortedIndex
+            return getNextTask(grid)
         }
-
-        return null
     }
 }
 
@@ -205,20 +212,18 @@ class Monkey(algorithm: SortAlgorithm) {
         set(value) {
             field = value
             strategy = makeStrategy(value, GameConfig.ROWS, GameConfig.COLS)
-            // No need for updateSpeed() anymore
         }
 
     var strategy: SortStrategy = makeStrategy(algorithm, GameConfig.ROWS, GameConfig.COLS)
         private set
 
-    var state: MonkeyState = IdleState(Random.nextDouble() * GameConfig.COLS * GameConfig.CELL_SIZE, Random.nextDouble() * GameConfig.ROWS * GameConfig.CELL_SIZE)
+    var state: MonkeyState = IdleState(Random.nextInt(GameConfig.COLS) * GameConfig.CELL_SIZE, Random.nextInt(GameConfig.ROWS) * GameConfig.CELL_SIZE)
     var fruitBeingCarried: Fruit? = null
 
-    // Define speed per tick based on algorithm
     private fun getSpeedPerTick(): Double = when (algorithm) {
-        SortAlgorithm.BOGO -> 0.03
-        SortAlgorithm.BUBBLE -> 0.07
-        SortAlgorithm.INSERTION -> 0.07
+        SortAlgorithm.BOGO -> 1.0
+        SortAlgorithm.BUBBLE -> 8.0
+        SortAlgorithm.INSERTION -> 8.0
     }
 
     fun assignTask(task: ShuffleTask, cellSize: Double): Boolean {
@@ -228,21 +233,21 @@ class Monkey(algorithm: SortAlgorithm) {
         return true
     }
 
-    fun update(grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
+    fun update(delta: Double, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
         if (state is ProgressState) {
             // Calculate total progress available this tick
-            var remainingProgress = getSpeedPerTick() * GameStats.timeFactor
+            var remainingProgress = getSpeedPerTick() * GameStats.timeFactor * delta
             while (remainingProgress > 0 && state is ProgressState) {
                 val currentState = state as ProgressState
-                val progressNeeded = 1.0 - currentState.getProgress()
+                val progressNeeded = 1.0 - currentState.progress
                 if (remainingProgress >= progressNeeded) {
                     // Complete the state
-                    currentState.setProgress(1.0)
+                    currentState.progress = 1.0
                     currentState.onProgressComplete(this, grid, cellSize, particleSystem)
                     remainingProgress -= progressNeeded
                 } else {
                     // Partially advance progress
-                    currentState.setProgress(currentState.getProgress() + remainingProgress)
+                    currentState.progress += remainingProgress
                     remainingProgress = 0.0
                 }
             }
@@ -281,7 +286,8 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
 
     fun tick() {
         val now = System.nanoTime()
-        val deltaMs = (now - lastTickTime) / 1_000_000
+        val deltaMs : Double = (now - lastTickTime) / 1_000_000.0 // Time in milliseconds
+        val delta = deltaMs / 1000.0 // Convert to seconds for normalized delta
         lastTickTime = now
 
         for (monkey in monkeys) {
@@ -289,9 +295,9 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
                 val task = monkey.strategy.getNextTask(gridModel)
                 if (task != null) monkey.assignTask(task, GameConfig.CELL_SIZE)
             }
-            monkey.update(gridModel, GameConfig.CELL_SIZE, particleSystem)
+            monkey.update(delta, gridModel, GameConfig.CELL_SIZE, particleSystem)
         }
-        particleSystem.update(deltaMs)
+        particleSystem.update(deltaMs.toLong())
     }
 
     fun buyMonkey(): Boolean {
@@ -368,6 +374,13 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    private val debugSuperSpeedButton = Button("Debug: Super Speed x100000").apply {
+        setOnAction {
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100000.0 else 1.0
+            println("Game speed toggled to x${GameStats.timeFactor}")
+        }
+    }
+
     private val chartButton = Button("Show Sort Chart").apply {
         setOnAction {
             SortChartWindow.show(controller)
@@ -379,7 +392,7 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, chartButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugSuperSpeedButton, chartButton)
         root.center = canvas
 
         val scene = Scene(root)
