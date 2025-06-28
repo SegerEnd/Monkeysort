@@ -165,26 +165,27 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
         val totalCells = rows * cols
 
         if (sortedIndex >= totalCells) {
-            sortedIndex = 1
-            compareIndex = 1
+            // Reset if needed or return null if done
             return null
         }
 
         if (compareIndex > 0) {
             val indexA = compareIndex - 1
             val indexB = compareIndex
+            val posA = Pos(indexA / cols, indexA % cols)
+            val posB = Pos(indexB / cols, indexB % cols)
 
-            val from = Pos(indexA / cols, indexA % cols)
-            val to = Pos(indexB / cols, indexB % cols)
-
-            if (grid.get(from).name > grid.get(to).name) {
+            if (grid.get(posA).name > grid.get(posB).name) {
+                // Swap and move left
                 compareIndex--
-                return ShuffleTask(from, to, grid.get(from))
+                return ShuffleTask(posA, posB, grid.get(posA))
             } else {
+                // No swap needed, move to next outer loop
                 sortedIndex++
                 compareIndex = sortedIndex
             }
         } else {
+            // Finished inserting this element
             sortedIndex++
             compareIndex = sortedIndex
         }
@@ -358,28 +359,12 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    // debug button to complete the sorting based on fruit name alphabetically immediately
-    private val debugCompleteButton = Button("Debug: Complete Sorting").apply {
-        setOnAction {
-            val sortedFruits = controller.gridModel.getGridCopy().flatten().sortedBy { it.name }
-            for (r in 0 until rows) {
-                for (c in 0 until cols) {
-                    controller.gridModel.set(Pos(r, c), sortedFruits[r * cols + c])
-                }
-            }
-            // set all monkeys to BubbleSort for visual consistency
-            controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
-
-            println("Grid sorted alphabetically")
-        }
-    }
-
     override fun start(primaryStage: Stage) {
         val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugCompleteButton, chartButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, chartButton)
         root.center = canvas
 
         val scene = Scene(root)

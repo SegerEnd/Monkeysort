@@ -11,8 +11,12 @@ class SortStrip {
         val stripWidth = gc.canvas.width
         val stripHeight = GameConfig.STRIP_HEIGHT
 
-        val fruits = Fruit.values().filter { it != Fruit.EMPTY }
+        val fruits = Fruit.values()
+            .filter { it != Fruit.EMPTY }
+            .sortedBy { it.name }
+
         val count = fruits.size
+
         val spacing = 2.0
         val totalSpacing = spacing * (count - 1)
         val squareWidth = (stripWidth - totalSpacing) / count
@@ -21,6 +25,7 @@ class SortStrip {
         val fontSize = 18.0
         gc.font = Font.font(fontSize)
 
+        // loop through each fruit in alphabetical order
         for ((index, fruit) in fruits.withIndex()) {
             val maxCount = grid.getSameFruitCount(fruit)
             val neighborCount = grid.getSameFruitNeighborCount(fruit)
