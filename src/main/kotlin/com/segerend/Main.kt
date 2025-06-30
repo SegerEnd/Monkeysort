@@ -187,16 +187,14 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
                 compareIndex--
                 return ShuffleTask(posA, posB, grid.get(posA))
             } else {
-                // No more left swaps needed
                 sortedIndex++
                 compareIndex = sortedIndex
-                return getNextTask(grid) // Immediately continue with the next insertion
+                return null
             }
         } else {
-            // Reached beginning; move to next outer loop
             sortedIndex++
             compareIndex = sortedIndex
-            return getNextTask(grid)
+            return null
         }
     }
 }
