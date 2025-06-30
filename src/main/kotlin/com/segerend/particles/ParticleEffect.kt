@@ -21,20 +21,23 @@ interface ParticleEffect : Updatable, Renderable
 interface Particle : Updatable, Renderable
 
 class ParticleSystem {
-    private val effects = mutableListOf<ParticleEffect>()
+    private val _effects = mutableListOf<ParticleEffect>()
+
+    val effects: List<ParticleEffect>
+        get() = _effects.toList() // Return an immutable copy
 
     fun add(effect: ParticleEffect) {
-        effects += effect
+        _effects += effect
     }
 
     fun update(deltaMs: Long) {
-        effects.removeIf {
+        _effects.removeIf {
             it.update(deltaMs); !it.isAlive
         }
     }
 
     fun render(gc: GraphicsContext, cellSize: Double) {
-        effects.forEach { it.render(gc, cellSize) }
+        _effects.forEach { it.render(gc, cellSize) }
     }
 }
 
@@ -79,6 +82,8 @@ abstract class BaseParticleEffect(
     private var elapsedMs = 0L
     protected val particles = mutableListOf<Particle>()
 
+    fun particleCount(): Int = particles.size
+
     override fun update(deltaMs: Long) {
         elapsedMs += deltaMs
 
@@ -101,7 +106,7 @@ class ComboParticleEffect(
     durationMs: Long = 1000L
 ) : BaseParticleEffect(durationMs) {
 
-    private val baseColor: Color = when (comboCells.size) {
+     val baseColor: Color = when (comboCells.size) {
         in 0..3 -> Color.ORANGE
         in 4..5 -> Color.DEEPSKYBLUE
         in 6..7 -> Color.LIMEGREEN
@@ -150,11 +155,12 @@ class ComboParticleEffect(
 class ConfettiEffect(
     private val centerX: Double,
     private val centerY: Double,
-    durationMs: Long = 1000L
+    durationMs: Long = 1000L,
+    amount: Int = 100
 ) : BaseParticleEffect(durationMs) {
 
     init {
-        repeat(100) {
+        repeat(amount) {
             particles += createParticle()
         }
     }

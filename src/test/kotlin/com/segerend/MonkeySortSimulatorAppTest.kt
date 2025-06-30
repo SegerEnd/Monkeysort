@@ -1,11 +1,13 @@
 package com.segerend
 
+import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.testfx.framework.junit5.ApplicationTest
+import org.testfx.util.WaitForAsyncUtils
 
 class MonkeySortSimulatorAppTest : ApplicationTest() {
     private lateinit var monkeySortSimulatorApp : MonkeySortSimulatorApp
@@ -16,7 +18,8 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
 //        stage.isMaximized = false
 //        stage.isFullScreen = false
 //        stage.toBack()
-        stage.isIconified = true
+//        stage.isIconified = true
+        stage.toFront()
     }
 
     @Test
@@ -59,5 +62,49 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         assertTrue(canvas.height > 0, "Canvas height should be greater than 0")
 
         assertNotNull(canvas.graphicsContext2D.fill, "Canvas graphics context should not be null")
+
+        // check if the grid model is initialized with random fruits
+        assertNotNull(monkeySortSimulatorApp.controller.gridModel, "GridModel should be initialized")
+        // check if there are random fruits in the grid
+        assertTrue(
+            monkeySortSimulatorApp.controller.gridModel.getGridCopy().any { row -> row.any { it != Fruit.EMPTY } },
+            "GridModel should contain random fruits"
+        )
+        monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
+    }
+
+    @Test
+    fun automaticButtonChanges() {
+        var monkeyCount = monkeySortSimulatorApp.controller.monkeys.size
+        val buyButton = lookup("#buyButton").queryButton()
+
+        // Set coins to zero, button should be disabled
+        GameStats.coins = 0
+        WaitForAsyncUtils.waitForFxEvents()
+        assertTrue(buyButton.isDisable, "Buy button should be disabled when there are no coins")
+
+        // Set coins high enough, button should enable
+        GameStats.coins = monkeySortSimulatorApp.controller.getNewMonkeyPrice() + 10
+        WaitForAsyncUtils.waitForFxEvents()
+        assertTrue(GameStats.coins > 0, "Coins should be greater than zero")
+
+        // Refresh buyButton reference after UI update (optional but safer)
+        val updatedBuyButton = lookup("#buyButton").queryButton()
+        assertFalse(updatedBuyButton.isDisable, "Buy button should be enabled when there are enough coins")
+
+        // Fire the buy button action on the FX thread
+        updatedBuyButton.fire()
+
+        WaitForAsyncUtils.waitForFxEvents()
+
+        // check if one monkey is added to the game
+        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size, "A monkey should be added to the game after buying")
+
+        // when coins are zero press the buy button again, it should not add a monkey
+        GameStats.coins = 0
+        updatedBuyButton.isDisable = false // Manually enable the button for testing
+        updatedBuyButton.fire()
+        WaitForAsyncUtils.waitForFxEvents()
+        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size, "No monkey should be added when coins are zero")
     }
 }

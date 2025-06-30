@@ -264,20 +264,23 @@ class MonkeySortSimulatorApp : Application() {
     private val rows = GameConfig.ROWS
     private val cols = GameConfig.COLS
     private val cellSize = GameConfig.CELL_SIZE
-    private val controller = GameController(rows, cols)
+    val controller = GameController(rows, cols)
     private val sortStrip = SortStrip()
 
     internal val root = BorderPane()
 
     private val buyButton = Button().apply {
+        id = "buyButton"
         setOnAction { if (!controller.buyMonkey()) println("Not enough coins!") }
     }
 
     private val upgradeButton = Button("Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)").apply {
+        id = "upgradeButton"
         setOnAction { if (!controller.upgradeMonkey()) println("Not enough coins or no monkeys to upgrade!") }
     }
 
     private val debugBogoButton = Button("Debug: BogoSort all").apply {
+        id = "debugBogoButton"
         setOnAction {
             controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
             println("All monkeys set to BogoSort")
@@ -285,6 +288,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val debugBubbleButton = Button("Debug: BubbleSort all").apply {
+        id = "debugBubbleButton"
         setOnAction {
             controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
             println("All monkeys set to BubbleSort")
@@ -292,6 +296,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val debugInsertionButton = Button("Debug: InsertionSort all").apply {
+        id = "debugInsertionButton"
         setOnAction {
             controller.monkeys.forEach { it.algorithm = SortAlgorithm.INSERTION }
             println("All monkeys set to InsertionSort")
@@ -299,6 +304,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val debugSpawnButton = Button("Debug: Spawn 5 Monkeys").apply {
+        id = "debugSpawn5MonkeysButton"
         setOnAction {
             repeat(5) { controller.monkeys.add(Monkey(SortAlgorithm.BOGO)) }
             println("Spawned 5 new monkeys")
@@ -306,6 +312,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val debugSpeedButton = Button("Debug: Speed x25").apply {
+        id = "debugSpeedx25Button"
         setOnAction {
             GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 25.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
@@ -313,6 +320,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val debugSuperSpeedButton = Button("Debug: Super Speed x1000000").apply {
+        id = "debugSuperSpeedButton"
         setOnAction {
             GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 1000000.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
@@ -320,6 +328,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     private val chartButton = Button("Show Sort Chart").apply {
+        id = "chartButton"
         setOnAction {
             SortChartWindow.show(controller)
         }
@@ -383,7 +392,7 @@ class MonkeySortSimulatorApp : Application() {
 
         sortStrip.draw(gc, controller.gridModel)
 
-        buyButton.isDisable = GameStats.coins < GameConfig.MONKEY_BASE_COST * controller.monkeys.size
+        buyButton.isDisable = GameStats.coins < controller.getNewMonkeyPrice()
         buyButton.text = "Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 

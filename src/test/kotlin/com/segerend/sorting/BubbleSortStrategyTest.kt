@@ -87,6 +87,13 @@ class BubbleSortStrategyTest {
         val particleSystem = ParticleSystem()
         GameStats.timeFactor = 1.0 // Ensure consistent speed
 
+        // add 4 fruit of the same type to the grid for testing combo
+        grid.set(Pos(0, 0), Fruit.APPLE)
+        grid.set(Pos(0, 1), Fruit.APPLE)
+        grid.set(Pos(1, 0), Fruit.APPLE)
+        grid.set(Pos(3, 3), Fruit.APPLE)
+        grid.set(Pos(1, 1), Fruit.APPLE)
+
         var iterations = 0
         val maxIterations = 250000 // Reasonable upper limit to prevent infinite loops
 
