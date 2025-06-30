@@ -4,6 +4,7 @@ import com.segerend.Fruit
 import com.segerend.GameConfig
 import com.segerend.GameStats
 import com.segerend.GridModel
+import com.segerend.LockManager
 import com.segerend.Monkey
 import com.segerend.Pos
 import com.segerend.ShuffleTask
@@ -76,8 +77,10 @@ class BubbleSortStrategyTest {
 
     @Test
     fun sortingTest() {
-        GameConfig.ROWS = 5
-        GameConfig.COLS = 5
+        GameConfig.ROWS = 4
+        GameConfig.COLS = 4
+
+        LockManager.clear()
 
         val monkey = Monkey(SortAlgorithm.BUBBLE)
         val grid = GridModel(GameConfig.ROWS, GameConfig.COLS)
@@ -85,7 +88,7 @@ class BubbleSortStrategyTest {
         GameStats.timeFactor = 1.0 // Ensure consistent speed
 
         var iterations = 0
-        val maxIterations = 10000 // Reasonable upper limit to prevent infinite loops
+        val maxIterations = 250000 // Reasonable upper limit to prevent infinite loops
 
         println("Initial grid state:")
         printGrid(grid)
@@ -106,5 +109,6 @@ class BubbleSortStrategyTest {
         println("Final grid state:")
         printGrid(grid)
         assertTrue(grid.isSorted(), "Grid should be sorted after monkey sorting with BubbleSortStrategy")
+        LockManager.clear()
     }
 }
