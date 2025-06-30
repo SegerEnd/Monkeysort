@@ -67,6 +67,14 @@ class GridModel(val rows: Int, val cols: Int) {
     fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
     fun set(pos: Pos, fruit: Fruit) { grid[pos.row][pos.col] = fruit }
 
+    fun fill(fruit: Fruit) {
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                grid[r][c] = fruit
+            }
+        }
+    }
+
     fun getComboCellsAt(pos: Pos): List<Pos> {
         fun collectMatches(direction: (Int) -> Pos): List<Pos> {
             val fruit = get(pos)
@@ -106,13 +114,6 @@ class GridModel(val rows: Int, val cols: Int) {
             }
         }
         return maxOf(maxCount, count) // Handle streak at the end
-    }
-
-    fun sortednessPercentage(): Double {
-        val flat = grid.flatten()
-        val totalPairs = flat.size - 1
-        val sortedPairs = flat.zipWithNext().count { it.first.name <= it.second.name }
-        return (sortedPairs.toDouble() / totalPairs) * 100
     }
 }
 
