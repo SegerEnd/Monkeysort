@@ -2,6 +2,7 @@ package com.segerend
 
 import com.segerend.monkey.*
 import com.segerend.particles.*
+import com.segerend.sorting.*
 
 import javafx.animation.AnimationTimer
 import javafx.application.Application
@@ -21,6 +22,7 @@ object GameConfig {
     const val COLS = 25
     const val CELL_SIZE = 24.0
     const val MONKEY_BASE_COST = 75
+    const val MONKEY_COST_INCREASE_FACTOR = 1.1 // 10% increase per monkey
     const val MONKEY_UPGRADE_COST = 500
     const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
     const val COMBO_REWARD_MULTIPLIER = 15
@@ -59,7 +61,7 @@ data class ShuffleTask(val from: Pos, val to: Pos, val fruit: Fruit)
 
 enum class SortAlgorithm { BOGO, BUBBLE, INSERTION }
 
-class GridModel(val rows: Int, val cols: Int) {
+class GridModel(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS) {
     private val grid = Array(rows) { Array(cols) { Fruit.random() } }
 
     fun getGridCopy(): Array<Array<Fruit>> = Array(rows) { r -> grid[r].clone() }
@@ -129,81 +131,10 @@ object LockManager {
 
     @Synchronized
     fun unlock(vararg positions: Pos) { lockedPositions.removeAll(positions.toSet()) }
-}
 
-// --- Sorting Strategies ---
-
-interface SortStrategy {
-    fun getNextTask(grid: GridModel): ShuffleTask?
-}
-
-class BogoSortStrategy : SortStrategy {
-    override fun getNextTask(grid: GridModel): ShuffleTask? {
-        val from = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols))
-        var to: Pos
-        do { to = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols)) } while (from == to)
-        return ShuffleTask(from, to, grid.get(from))
+    fun clear() {
+        lockedPositions.clear()
     }
-}
-
-class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
-    private var bubbleSortIndex = 0
-    private var bubbleSortPass = 0
-
-    override fun getNextTask(grid: GridModel): ShuffleTask? {
-        val totalCells = rows * cols
-        while (bubbleSortIndex < totalCells - 1 - bubbleSortPass) {
-            val indexA = bubbleSortIndex
-            val indexB = indexA + 1
-            val from = Pos(indexA / cols, indexA % cols)
-            val to = Pos(indexB / cols, indexB % cols)
-            bubbleSortIndex++
-            if (grid.get(from).name > grid.get(to).name) return ShuffleTask(from, to, grid.get(from))
-        }
-        bubbleSortIndex = 0
-        bubbleSortPass++
-        if (bubbleSortPass >= totalCells - 1) bubbleSortPass = 0
-        return null
-    }
-}
-
-class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
-    private var sortedIndex = 1
-    private var compareIndex = 1
-
-    override fun getNextTask(grid: GridModel): ShuffleTask? {
-        val totalCells = rows * cols
-
-        if (sortedIndex >= totalCells) {
-            return null
-        }
-
-        if (compareIndex > 0) {
-            val indexA = compareIndex - 1
-            val indexB = compareIndex
-            val posA = Pos(indexA / cols, indexA % cols)
-            val posB = Pos(indexB / cols, indexB % cols)
-
-            if (grid.get(posA).name > grid.get(posB).name) {
-                compareIndex--
-                return ShuffleTask(posA, posB, grid.get(posA))
-            } else {
-                sortedIndex++
-                compareIndex = sortedIndex
-                return null
-            }
-        } else {
-            sortedIndex++
-            compareIndex = sortedIndex
-            return null
-        }
-    }
-}
-
-fun makeStrategy(algorithm: SortAlgorithm, rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS): SortStrategy = when (algorithm) {
-    SortAlgorithm.BOGO -> BogoSortStrategy()
-    SortAlgorithm.BUBBLE -> BubbleSortStrategy(rows, cols)
-    SortAlgorithm.INSERTION -> InsertionSortStrategy(rows, cols)
 }
 
 class Monkey(algorithm: SortAlgorithm) {
@@ -217,6 +148,7 @@ class Monkey(algorithm: SortAlgorithm) {
         private set
 
     var state: MonkeyState = IdleState(Random.nextInt(GameConfig.COLS) * GameConfig.CELL_SIZE, Random.nextInt(GameConfig.ROWS) * GameConfig.CELL_SIZE)
+
     var fruitBeingCarried: Fruit? = null
 
     private fun getSpeedPerTick(): Double = when (algorithm) {
@@ -225,7 +157,7 @@ class Monkey(algorithm: SortAlgorithm) {
         SortAlgorithm.INSERTION -> 8.0
     }
 
-    fun assignTask(task: ShuffleTask, cellSize: Double): Boolean {
+    fun assignTask(task: ShuffleTask, cellSize: Double = GameConfig.CELL_SIZE): Boolean {
         if (!LockManager.tryLock(task.from, task.to)) return false
         val (currentX, currentY) = state.getDrawPosition()
         state = MovingToSourceState(task, cellSize, currentX, currentY)
@@ -271,7 +203,7 @@ class Monkey(algorithm: SortAlgorithm) {
     }
 
     fun isIdle(): Boolean {
-        return state is IdleState || state is WanderingState || state is ChattingState
+        return state is IdleState || state is WanderingState || state is ChattingState || state is DancingState
     }
 }
 
@@ -299,8 +231,12 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         particleSystem.update(deltaMs.toLong())
     }
 
+    fun getNewMonkeyPrice(): Int {
+        return (GameConfig.MONKEY_BASE_COST * monkeys.size * GameConfig.MONKEY_COST_INCREASE_FACTOR).toInt()
+    }
+
     fun buyMonkey(): Boolean {
-        val cost = (GameConfig.MONKEY_BASE_COST * monkeys.size * 1.1).toInt()
+        val cost = getNewMonkeyPrice()
         if (GameStats.coins >= cost) {
             GameStats.coins -= cost
             monkeys.add(Monkey(SortAlgorithm.BOGO))
@@ -373,9 +309,9 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugSuperSpeedButton = Button("Debug: Super Speed x100000").apply {
+    private val debugSuperSpeedButton = Button("Debug: Super Speed x1000000").apply {
         setOnAction {
-            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100000.0 else 1.0
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 1000000.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
         }
     }
@@ -446,7 +382,7 @@ class MonkeySortSimulatorApp : Application() {
         sortStrip.draw(gc, controller.gridModel)
 
         buyButton.isDisable = GameStats.coins < GameConfig.MONKEY_BASE_COST * controller.monkeys.size
-        buyButton.text = "Buy Monkey (${GameConfig.MONKEY_BASE_COST * controller.monkeys.size} coins)"
+        buyButton.text = "Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {

@@ -1,7 +1,10 @@
+import java.awt.Desktop
+
 plugins {
     kotlin("jvm") version "2.1.20"
     id("org.openjfx.javafxplugin") version "0.0.13"
     application
+    jacoco
 }
 
 val appName = "Monkeysort"
@@ -33,6 +36,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 }
 
 kotlin {
@@ -42,6 +46,34 @@ kotlin {
 javafx {
     version = javafxVersion
     modules = listOf("javafx.controls", "javafx.fxml", "javafx.media", "javafx.graphics")
+}
+
+jacoco {
+    toolVersion = "0.8.13"
+    reportsDirectory = layout.buildDirectory.dir("jacoco")
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.outputLocation.set(layout.buildDirectory.dir("jacoco/html"))
+    }
+
+    doLast {
+        val reportDir = layout.buildDirectory.dir("jacoco/html").get().asFile
+        val indexHtml = reportDir.resolve("index.html")
+
+        println("Jacoco test coverage report generated at: ${indexHtml.toURI()}")
+
+//        if (Desktop.isDesktopSupported()) {
+//            println("Opening report in your default browser...")
+//            Desktop.getDesktop().browse(indexHtml.toURI())
+//        } else {
+//            println("Opening browser is not supported on this platform.")
+//        }
+    }
 }
 
 // Create a fat JAR

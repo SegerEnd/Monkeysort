@@ -13,6 +13,16 @@ class GridModelTest {
     }
 
     @Test
+    fun `test initialization has no empty cells`() {
+        val copy = grid.getGridCopy()
+        copy.forEach { row ->
+            row.forEach { fruit ->
+                assertTrue(fruit != Fruit.EMPTY, "Grid should not contain any EMPTY cells")
+            }
+        }
+    }
+
+    @Test
     fun getGridCopy() {
         // Check if function returns a new instance that is a copy of the grid and not the same instance
         val copy = grid.getGridCopy()
@@ -64,17 +74,53 @@ class GridModelTest {
     @Test
     fun getComboCellsAt() {
         // clear the grid before testing
-        val comboGrid = GridModel(5, 5)
+        var comboGrid = GridModel(5, 5)
         comboGrid.fill(Fruit.EMPTY)
 
-        // Set up a combo by placing the same fruit in adjacent cells
-        comboGrid.set(Pos(1, 0), Fruit.CHERRY)
-        comboGrid.set(Pos(1, 1), Fruit.CHERRY)
-        comboGrid.set(Pos(1, 2), Fruit.CHERRY)
+        // Set up a grid with a 3-cell horizontal combo
+        comboGrid.set(Pos(0, 0), Fruit.CHERRY)
+        comboGrid.set(Pos(0, 1), Fruit.CHERRY)
+        comboGrid.set(Pos(0, 2), Fruit.CHERRY)
+        comboGrid.set(Pos(0, 3), Fruit.BANANA)
 
-        val comboCells = comboGrid.getComboCellsAt(Pos(1, 1))
+        val comboCells = comboGrid.getComboCellsAt(Pos(0, 1))
         assertEquals(3, comboCells.size, "getComboCellsAt should return 3 cells for a 3-cell combo")
-        assertTrue(comboCells.contains(Pos(1, 1)), "Combo should include the center cell")
+        assertTrue(comboCells.contains(Pos(0, 1)), "Combo should include the center cell")
+
+        comboGrid = GridModel(5, 5)
+        comboGrid.fill(Fruit.EMPTY)
+        // Set up a grid with a 4-cell vertical combo
+        comboGrid.set(Pos(1, 0), Fruit.APPLE)
+        comboGrid.set(Pos(2, 0), Fruit.APPLE)
+        comboGrid.set(Pos(3, 0), Fruit.APPLE)
+        comboGrid.set(Pos(4, 0), Fruit.APPLE)
+        val verticalComboCells = comboGrid.getComboCellsAt(Pos(2, 0))
+        assertEquals(4, verticalComboCells.size, "getComboCellsAt should return 4 cells for a 4-cell vertical combo")
+        assertTrue(verticalComboCells.contains(Pos(2, 0)), "Combo should include the center cell")
+        // Test with a cell that has no combo
+        comboGrid = GridModel(5, 5)
+        comboGrid.fill(Fruit.EMPTY)
+        comboGrid.set(Pos(2, 2), Fruit.GRAPE)
+        val noComboCells = comboGrid.getComboCellsAt(Pos(2, 2))
+        assertEquals(0, noComboCells.size, "getComboCellsAt should return 0 for a cell with no combo but has a fruit")
+    }
+
+    @Test
+    fun getSameFruitNeighborCount() {
+        // clear the grid before testing
+        val neighborGrid = GridModel(5, 5)
+        neighborGrid.fill(Fruit.EMPTY)
+
+        // Set up a grid with some fruits
+        neighborGrid.set(Pos(0, 0), Fruit.APPLE)
+        neighborGrid.set(Pos(0, 1), Fruit.APPLE)
+        neighborGrid.set(Pos(1, 0), Fruit.BANANA)
+        neighborGrid.set(Pos(1, 1), Fruit.BANANA)
+        neighborGrid.set(Pos(2, 2), Fruit.CHERRY)
+
+        assertEquals(2, neighborGrid.getSameFruitNeighborCount(Fruit.APPLE), "getSameFruitNeighborCount should return the correct count for APPLE")
+        assertEquals(2, neighborGrid.getSameFruitNeighborCount(Fruit.BANANA), "getSameFruitNeighborCount should return the correct count for BANANA")
+        assertEquals(1, neighborGrid.getSameFruitNeighborCount(Fruit.CHERRY), "getSameFruitNeighborCount should return 1 for CHERRY since it has no neighbors, only itself")
     }
 
     @Test
@@ -96,19 +142,9 @@ class GridModelTest {
     }
 
     @Test
-    fun getSameFruitNeighborCount() {
-        val neighborCountGrid = GridModel(5, 5)
-        neighborCountGrid.fill(Fruit.EMPTY)
-
-        // Set up a grid with some fruits
-        neighborCountGrid.set(Pos(0, 0), Fruit.APPLE)
-        neighborCountGrid.set(Pos(0, 1), Fruit.APPLE)
-        neighborCountGrid.set(Pos(1, 0), Fruit.BANANA)
-        neighborCountGrid.set(Pos(1, 1), Fruit.BANANA)
-        neighborCountGrid.set(Pos(2, 2), Fruit.CHERRY)
-
-        assertEquals(2, neighborCountGrid.getSameFruitNeighborCount(Fruit.APPLE), "getSameFruitNeighborCount should return the correct count for APPLE")
-        assertEquals(2, neighborCountGrid.getSameFruitNeighborCount(Fruit.BANANA), "getSameFruitNeighborCount should return the correct count for BANANA")
-        assertEquals(1, neighborCountGrid.getSameFruitNeighborCount(Fruit.CHERRY), "getSameFruitNeighborCount should return 1 for CHERRY since it has no other neighbors then itself")
+    fun testGetRowsAndGetCols() {
+        val gridModel = GridModel(5, 7)
+        assertEquals(5, gridModel.rows)
+        assertEquals(7, gridModel.cols)
     }
 }

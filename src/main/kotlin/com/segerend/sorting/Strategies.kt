@@ -1,0 +1,71 @@
+package com.segerend.sorting
+
+import com.segerend.GridModel
+import com.segerend.Pos
+import com.segerend.ShuffleTask
+import kotlin.random.Random
+
+// --- Sorting Strategies ---
+
+class BogoSortStrategy : SortStrategy {
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val from = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols))
+        var to: Pos
+        do { to = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols)) } while (from == to)
+        return ShuffleTask(from, to, grid.get(from))
+    }
+}
+
+class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
+    private var bubbleSortIndex = 0
+    private var bubbleSortPass = 0
+
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val totalCells = rows * cols
+        while (bubbleSortIndex < totalCells - 1 - bubbleSortPass) {
+            val indexA = bubbleSortIndex
+            val indexB = indexA + 1
+            val from = Pos(indexA / cols, indexA % cols)
+            val to = Pos(indexB / cols, indexB % cols)
+            bubbleSortIndex++
+            if (grid.get(from).name > grid.get(to).name) return ShuffleTask(from, to, grid.get(from))
+        }
+        bubbleSortIndex = 0
+        bubbleSortPass++
+        if (bubbleSortPass >= totalCells - 1) bubbleSortPass = 0
+        return null
+    }
+}
+
+class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
+    private var sortedIndex = 1
+    private var compareIndex = 1
+
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        val totalCells = rows * cols
+
+        if (sortedIndex >= totalCells) {
+            return null
+        }
+
+        if (compareIndex > 0) {
+            val indexA = compareIndex - 1
+            val indexB = compareIndex
+            val posA = Pos(indexA / cols, indexA % cols)
+            val posB = Pos(indexB / cols, indexB % cols)
+
+            if (grid.get(posA).name > grid.get(posB).name) {
+                compareIndex--
+                return ShuffleTask(posA, posB, grid.get(posA))
+            } else {
+                sortedIndex++
+                compareIndex = sortedIndex
+                return null
+            }
+        } else {
+            sortedIndex++
+            compareIndex = sortedIndex
+            return null
+        }
+    }
+}
