@@ -10,6 +10,7 @@ import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Button
+import javafx.scene.image.WritableImage
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
@@ -18,8 +19,8 @@ import kotlin.random.Random
 
 // --- Constants ---
 object GameConfig {
-    const val ROWS = 25
-    const val COLS = 25
+    var ROWS = 25
+    var COLS = 25
     const val CELL_SIZE = 24.0
     const val MONKEY_BASE_COST = 75
     const val MONKEY_COST_INCREASE_FACTOR = 1.1 // 10% increase per monkey
@@ -266,6 +267,8 @@ class MonkeySortSimulatorApp : Application() {
     private val controller = GameController(rows, cols)
     private val sortStrip = SortStrip()
 
+    internal val root = BorderPane()
+
     private val buyButton = Button().apply {
         setOnAction { if (!controller.buyMonkey()) println("Not enough coins!") }
     }
@@ -323,7 +326,6 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     override fun start(primaryStage: Stage) {
-        val root = BorderPane()
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
 

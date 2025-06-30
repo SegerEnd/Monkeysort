@@ -28,6 +28,16 @@ val javafxVersion = "21"
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("org.testfx:testfx-core:4.0.17")
+    testImplementation("org.testfx:testfx-junit5:4.0.17")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    testRuntimeOnly("org.openjfx:javafx-controls:${javafxVersion}")
+    testRuntimeOnly("org.openjfx:javafx-fxml:${javafxVersion}")
+    testRuntimeOnly("org.openjfx:javafx-media:${javafxVersion}")
+    testRuntimeOnly("org.openjfx:javafx-graphics:${javafxVersion}")
+
     implementation("org.openjfx:javafx-controls:$javafxVersion")
     implementation("org.openjfx:javafx-fxml:$javafxVersion")
     implementation("org.openjfx:javafx-media:$javafxVersion")
