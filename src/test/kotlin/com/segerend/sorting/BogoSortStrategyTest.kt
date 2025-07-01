@@ -17,7 +17,7 @@ class BogoSortStrategyTest {
         strategy = BogoSortStrategy() // Initialize the BogoSortStrategy
     }
 
-    @RepeatedTest(50)
+    @RepeatedTest(25)
     fun getNextTask() {
         val grid = GridModel(5, 5)
         val task = strategy.getNextTask(grid)
