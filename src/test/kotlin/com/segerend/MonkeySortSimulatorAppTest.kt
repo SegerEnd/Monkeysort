@@ -108,8 +108,8 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         // set the monkey to idle
         monkeySortSimulatorApp.controller.monkeys.firstOrNull()?.let { it.state = IdleState(0.0, 0.0) }
 
-        // set game speed to x5 for faster testing
-        GameStats.timeFactor = 5.0
+        // set game speed to x10 for faster testing
+        GameStats.timeFactor = 10.0
 
         // empty the grid
         monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
@@ -124,7 +124,7 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 2), Fruit.CHERRY)
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 3), Fruit.BANANA)
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 4), Fruit.CHERRY)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 5), Fruit.CHERRY)
+        monkeySortSimulatorApp.controller.gridModel.set(Pos(1, 0), Fruit.CHERRY)
 
         // place with a monkey a shuffle task on the grid
         val monkey = monkeySortSimulatorApp.controller.monkeys.firstOrNull()

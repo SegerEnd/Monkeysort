@@ -23,7 +23,7 @@ class SortStrip {
         val squareHeight = stripHeight
 
         val fontSize = 18.0
-        gc.font = Font.font(fontSize)
+        gc.font = Utils.emojiCompatibleFont(fontSize)
 
         // loop through each fruit in alphabetical order
         for ((index, fruit) in fruits.withIndex()) {
@@ -66,7 +66,7 @@ class SortStrip {
             val textX = x + (squareWidth - textWidth) / 2
             val textY = y + (squareHeight + textHeight) / 2 - 4 // fine-tuned vertical centering
 
-            gc.fill = centerColor
+            gc.fill = fruit.color.darker().saturate()
             gc.fillText(fruit.emoji, textX, textY)
 
             if (maxCount == neighborCount) {

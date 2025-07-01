@@ -156,8 +156,8 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
 
     private fun getSpeedPerTick(): Double = when (algorithm) {
         SortAlgorithm.BOGO -> 1.0
-        SortAlgorithm.BUBBLE -> 8.0
-        SortAlgorithm.INSERTION -> 8.0
+        SortAlgorithm.BUBBLE -> 12.0
+        SortAlgorithm.INSERTION -> 12.0
     }
 
     fun assignTask(task: ShuffleTask, cellSize: Double = GameConfig.CELL_SIZE): Boolean {

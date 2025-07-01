@@ -20,6 +20,34 @@ class SortChartWindowTest : ApplicationTest() {
         this.stage = stage
     }
 
+    // test without needing accessibility permissions for clickon or fire
+    @Test
+    fun openSortChartWindowWithoutAccessibility() {
+        lateinit var newSortChartWindow : SortChartWindow
+        LockManager.clear()
+
+        Platform.runLater {
+            newSortChartWindow = SortChartWindow(monkeySortSimulatorApp.controller)
+            assertNotNull(newSortChartWindow, "SortChartWindow should not be null")
+        }
+        WaitForAsyncUtils.waitForFxEvents()
+        assertDoesNotThrow({
+            Platform.runLater {
+                newSortChartWindow.stage.show()
+                newSortChartWindow.stage.toFront()
+                newSortChartWindow.stage.requestFocus()
+            }
+            WaitForAsyncUtils.waitForFxEvents()
+        }, "SortChartWindow should be able to show without accessibility permissions")
+        // clean up
+        Platform.runLater {
+            newSortChartWindow.stage.close()
+        }
+        WaitForAsyncUtils.waitForFxEvents()
+        LockManager.clear()
+    }
+
+
     @Test
     fun openSortChartWindow() {
         assumeTrue(AccessibilityUtil.isAccessibilityEnabled, "Accessibility permissions not enabled");

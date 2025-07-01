@@ -15,7 +15,7 @@ import kotlin.concurrent.fixedRateTimer
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class SortChartWindow private constructor(private val controller: GameController) {
+class SortChartWindow internal constructor(private val controller: GameController) {
     val stage = Stage()
     val root = BorderPane()
 
