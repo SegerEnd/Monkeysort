@@ -17,6 +17,7 @@ import java.util.logging.Logger
 
 class SortChartWindow private constructor(private val controller: GameController) {
     val stage = Stage()
+    val root = BorderPane()
 
     init {
         // Setup your chart window as before
@@ -27,17 +28,18 @@ class SortChartWindow private constructor(private val controller: GameController
 
         barChart.animated = false
 
-        val toggleButton = Button("Enable Animations")
-        toggleButton.setOnAction {
-            barChart.animated = !barChart.animated
-            toggleButton.text = if (barChart.animated) "Disable Animations" else "Enable Animations"
+        val toggleAnimButton = Button("Enable Animations").apply {
+            id = "toggleAnimButton"
+            setOnAction {
+                barChart.animated = !barChart.animated
+                text = if (barChart.animated) "Disable Animations" else "Enable Animations"
+            }
         }
 
-        val buttonBox = HBox(toggleButton)
+        val buttonBox = HBox(toggleAnimButton)
         buttonBox.alignment = Pos.CENTER
         buttonBox.padding = Insets(10.0)
 
-        val root = BorderPane()
         root.center = barChart
         root.bottom = buttonBox
 
@@ -120,6 +122,10 @@ class SortChartWindow private constructor(private val controller: GameController
                 Logger.getLogger(SortChartWindow::class.java.name)
                     .log(Level.SEVERE, "Failed to show SortChartWindow", e)
             }
+        }
+
+        fun getInstance(): SortChartWindow? {
+            return instance
         }
     }
 }

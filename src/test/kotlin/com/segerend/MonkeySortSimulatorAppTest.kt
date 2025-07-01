@@ -1,7 +1,6 @@
 package com.segerend
 
 import com.segerend.monkey.IdleState
-import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
