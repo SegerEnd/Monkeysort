@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.fail
 import org.testfx.api.FxToolkit
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
@@ -60,6 +61,91 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         waitFx()
         assertEquals(initialMonkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size)
     }
+
+    private fun waitUntilGridIsSorted(monkey: Monkey, timeoutMillis: Long = 30_000, pollInterval: Long = 500) {
+        var elapsed = 0L
+        val grid = monkeySortSimulatorApp.controller.gridModel
+
+        while (!grid.isSorted() && elapsed < timeoutMillis) {
+            Thread.sleep(pollInterval)
+            elapsed += pollInterval
+
+            interact {
+                if (monkey.isIdle()) {
+                    val task = monkey.strategy.getNextTask(grid)
+                    if (task != null) {
+                        monkey.assignTask(task, GameConfig.CELL_SIZE)
+                    }
+                }
+            }
+        }
+
+        assertTrue(
+            grid.isSorted(),
+            "Grid should be sorted after $elapsed ms, but it is not sorted."
+        )
+    }
+
+    @Test
+    fun fruitComboTest() {
+        val controller = monkeySortSimulatorApp.controller
+        val monkey = controller.monkeys.firstOrNull()
+        assertNotNull(monkey, "There should be at least one monkey in the game")
+
+        // Prepare the test environment
+        interact {
+            monkey!!.state = IdleState(0.0, 0.0)
+            monkey.algorithm = SortAlgorithm.BUBBLE
+            controller.gridModel.fill(Fruit.EMPTY)
+        }
+
+        waitFx()
+
+        // Ensure grid is empty
+        val grid = controller.gridModel
+        assertTrue(
+            grid.getGridCopy().all { row -> row.all { it == Fruit.EMPTY } },
+            "Grid should be empty before setting up the combo"
+        )
+
+        // Setup combo fruits in the grid
+        interact {
+            val comboFruits = listOf(
+                Fruit.CHERRY, Fruit.APPLE, Fruit.CHERRY, Fruit.BANANA, Fruit.CHERRY
+            )
+            comboFruits.forEachIndexed { i, fruit ->
+                grid.set(Pos(0, i), fruit)
+            }
+
+            repeat(20) { grid.set(Pos(0, it + 5), Fruit.CHERRY) }
+
+            grid.set(Pos(0, 20), Fruit.APPLE)
+            grid.set(Pos(0, 22), Fruit.APPLE)
+            GameStats.timeFactor = 1000.0
+        }
+
+        waitFx()
+
+        // Capture coins before sort
+        setCoins(0)
+        val initialCoins = GameStats.coins
+
+        // Assign tasks until grid is sorted or timeout
+        waitUntilGridIsSorted(monkey!!)
+
+        assertTrue(grid.isSorted(), "Grid should be sorted after combo task")
+
+        // Check combo reward was applied
+        val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 3 // for 3 CHERRYs
+        assertTrue(
+            GameStats.coins >= initialCoins + expectedComboReward,
+            "Coins should increase by at least $expectedComboReward from combo"
+        )
+
+        // Reset game speed
+        GameStats.timeFactor = 1.0
+    }
+
 
     @Test
     fun spawn5Monkeys() {
