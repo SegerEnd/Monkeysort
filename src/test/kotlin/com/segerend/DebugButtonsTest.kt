@@ -41,11 +41,14 @@ class DebugButtonsTest : ApplicationTest() {
 
     @Test
     fun testDebugButtons() {
+        interact { GameStats.reset() }
+
         fun assertAllMonkeysAlgorithm(expected: SortAlgorithm, message: String) {
             assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == expected }, message)
         }
 
         fun clickButton(buttonId: String) {
+            WaitForAsyncUtils.waitForFxEvents()
             Platform.runLater {
                 val button = lookup(buttonId).queryButton()
                 initialButtonAssert(button)
@@ -82,8 +85,8 @@ class DebugButtonsTest : ApplicationTest() {
         }
         WaitForAsyncUtils.waitForFxEvents()
 
-        val initialGameSpeedTimeFactor = GameStats.timeFactor
-        assertEquals(1.0, initialGameSpeedTimeFactor, "Initial game speed time factor should be 1.0 by default")
+        val initialGameSpeedTimeFactor = 1.0
+        assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Initial game speed time factor should be 1.0 by default")
 
         // Speed x5 button
         clickButton("#debugSpeedx5Button")

@@ -30,7 +30,9 @@ class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
             val from = Pos(indexA / cols, indexA % cols)
             val to = Pos(indexB / cols, indexB % cols)
             bubbleSortIndex++
-            if (grid.get(from).name > grid.get(to).name) return ShuffleTask(from, to, grid.get(from))
+            if (grid.get(from) != Fruit.EMPTY && grid.get(to) != Fruit.EMPTY && grid.get(from).name > grid.get(to).name) {
+                return ShuffleTask(from, to, grid.get(from))
+            }
         }
         bubbleSortIndex = 0
         bubbleSortPass++
@@ -56,7 +58,7 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
             val posA = Pos(indexA / cols, indexA % cols)
             val posB = Pos(indexB / cols, indexB % cols)
 
-            if (grid.get(posA).name > grid.get(posB).name) {
+            if (grid.get(posA) != Fruit.EMPTY && grid.get(posB) != Fruit.EMPTY && grid.get(posA).name > grid.get(posB).name) {
                 compareIndex--
                 return ShuffleTask(posA, posB, grid.get(posA))
             } else {

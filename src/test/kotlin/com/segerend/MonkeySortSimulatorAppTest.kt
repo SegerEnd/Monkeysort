@@ -127,30 +127,32 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         interact {
             monkey!!.state = IdleState(0.0, 0.0)
             monkey.algorithm = SortAlgorithm.BUBBLE // Set sorting algorithm
-        }
-
-        // Set game speed to x5 for faster testing safely
-        interact {
-            GameStats.timeFactor = 5.0
+            monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
         }
 
         // Empty the grid and verify it’s empty
-        interact {
-            monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
-        }
+        monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
+
         WaitForAsyncUtils.waitForFxEvents()
+
         assertTrue(
             monkeySortSimulatorApp.controller.gridModel.getGridCopy().all { row -> row.all { it == Fruit.EMPTY } },
-            "GridModel should be filled with EMPTY fruits"
+            "Grid should be empty before setting up the combo"
         )
 
         // Set up a grid with a 4-cell horizontal combo on FX thread
         interact {
+            GameStats.timeFactor = 1_000.0 // Speed up the game for faster testing
             monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 0), Fruit.CHERRY)
             monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 1), Fruit.APPLE)
             monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 2), Fruit.CHERRY)
             monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 3), Fruit.BANANA)
             monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 4), Fruit.CHERRY)
+            repeat(20) { col ->
+                monkeySortSimulatorApp.controller.gridModel.set(Pos(0, col + 5), Fruit.CHERRY)
+            }
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 20), Fruit.APPLE)
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 22), Fruit.APPLE)
         }
         WaitForAsyncUtils.waitForFxEvents()
 
@@ -162,8 +164,8 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         val initialCoinsBalance = GameStats.coins
 
         // Poll and assign tasks until grid is sorted or timeout
-        val maxWaitTimeMs = 30_000L
-        val pollIntervalMs = 500L
+        var maxWaitTimeMs = 30_000L
+        var pollIntervalMs = 500L
         var elapsed = 0L
 
         while (!monkeySortSimulatorApp.controller.gridModel.isSorted() && elapsed < maxWaitTimeMs) {
@@ -184,6 +186,8 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
             monkeySortSimulatorApp.controller.gridModel.isSorted(),
             "Grid should be sorted after completing the combo task"
         )
+
+        GameStats.timeFactor = 1.0
 
         WaitForAsyncUtils.waitForFxEvents()
 
@@ -235,6 +239,14 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
 
     @AfterEach
     fun cleanup() {
+        monkeySortSimulatorApp.controller.monkeys.clear() // Clear monkeys after each test
+        if (monkeySortSimulatorApp.controller.monkeys.isEmpty()) {
+            val newMonkey = Monkey(SortAlgorithm.BOGO)
+            newMonkey.state = IdleState(0.0, 0.0)
+            monkeySortSimulatorApp.controller.monkeys.add(newMonkey)
+        }
+        WaitForAsyncUtils.waitForFxEvents()
+
         LockManager.clear()
         FxToolkit.cleanupStages()
         FxToolkit.cleanupApplication(monkeySortSimulatorApp)
@@ -246,10 +258,10 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         // Any global cleanup after all tests
         LockManager.clear()
         Platform.runLater {
+            monkeySortSimulatorApp.controller.monkeys.clear()
             if (stage.isShowing) {
                 stage.close()
             }
-            monkeySortSimulatorApp.controller.monkeys.clear()
         }
         WaitForAsyncUtils.waitForFxEvents()
         monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY) // Clear the grid model
