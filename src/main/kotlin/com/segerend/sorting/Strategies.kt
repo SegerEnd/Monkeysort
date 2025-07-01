@@ -1,5 +1,6 @@
 package com.segerend.sorting
 
+import com.segerend.Fruit
 import com.segerend.GridModel
 import com.segerend.Pos
 import com.segerend.ShuffleTask
@@ -10,8 +11,9 @@ import kotlin.random.Random
 class BogoSortStrategy : SortStrategy {
     override fun getNextTask(grid: GridModel): ShuffleTask? {
         val from = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols))
+        if (grid.get(from) == Fruit.EMPTY) return null
         var to: Pos
-        do { to = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols)) } while (from == to)
+        do { to = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols)) } while (to == from)
         return ShuffleTask(from, to, grid.get(from))
     }
 }

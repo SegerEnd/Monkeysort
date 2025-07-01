@@ -171,7 +171,7 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
     fun update(delta: Double, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
         if (state is ProgressState) {
             // Calculate total progress available this tick
-            var remainingProgress = getSpeedPerTick() * GameStats.timeFactor * delta
+            var remainingProgress = getSpeedPerTick() * delta
             while (remainingProgress > 0 && state is ProgressState) {
                 val currentState = state as ProgressState
                 val progressNeeded = 1.0 - currentState.progress
@@ -217,13 +217,14 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     var gridModel = GridModel(rows, cols)
     val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO)) // Start with one monkey
     val particleSystem = ParticleSystem()
-    private var lastTickTime = System.nanoTime()
 
-    fun tick() {
-        val now = System.nanoTime()
-        val deltaMs : Double = (now - lastTickTime) / 1_000_000.0 // Time in milliseconds
-        val delta = deltaMs / 1000.0 // Convert to seconds for normalized delta
-        lastTickTime = now
+    fun tick(frameTime : FrameTime) {
+        val deltaMs = frameTime.deltaMs * GameStats.timeFactor
+//        val deltaMs = frameTime.deltaMs
+
+        // Convert to seconds for normalized delta
+        val delta = deltaMs / 1000.0 * GameStats.timeFactor
+//        val delta = deltaMs / 1000.0
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
@@ -260,6 +261,8 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         return false
     }
 }
+
+data class FrameTime(val deltaMs: Double, val currentTimeSec: Double)
 
 // --- Main Application ---
 
@@ -314,10 +317,10 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugSpeedButton = Button("Debug: Speed x25").apply {
-        id = "debugSpeedx25Button"
+    private val debugSpeedButton = Button("Debug: Speed x5").apply {
+        id = "debugSpeedx5Button"
         setOnAction {
-            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 25.0 else 1.0
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 5.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
         }
     }
@@ -362,19 +365,25 @@ class MonkeySortSimulatorApp : Application() {
         primaryStage.show()
 
         var lastFrameTime = System.nanoTime()
+
         object : AnimationTimer() {
+            var lastFrameTime = System.nanoTime()
+
             override fun handle(now: Long) {
-                val frameTime = (now - lastFrameTime) / 1_000_000_000.0
-                if (frameTime >= 1.0 / GameConfig.MAX_FPS) {
+                val deltaSeconds = (now - lastFrameTime) / 1_000_000_000.0
+                if (deltaSeconds >= 1.0 / GameConfig.MAX_FPS) {
+                    val deltaMs = deltaSeconds * 1000.0
                     lastFrameTime = now
-                    controller.tick()
-                    draw(gc)
+
+                    val frameTime = FrameTime(deltaMs, now / 1_000_000_000.0)
+                    controller.tick(frameTime)
+                    draw(gc, frameTime)
                 }
             }
         }.start()
     }
 
-    private fun draw(gc: GraphicsContext) {
+    private fun draw(gc: GraphicsContext, frameTime: FrameTime) {
         gc.fill = Color.BEIGE
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
@@ -406,11 +415,17 @@ class MonkeySortSimulatorApp : Application() {
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
-//            gc.fill = Color.DODGERBLUE
             val img = completedImage
-            val imgX = gc.canvas.width / 2 - img.width / 2
-            val imgY = gc.canvas.height / 2 - img.height / 2 - 20
-            gc.drawImage(img, imgX, imgY)
+            val wave = kotlin.math.sin(frameTime.currentTimeSec * 2 * Math.PI * 0.5)
+            val scale = 1.0 + 0.01 * wave
+            val offsetY = 3.0 * wave
+
+            val width = img.width * scale
+            val height = img.height * scale
+            val x = (gc.canvas.width - width) / 2
+            val y = (gc.canvas.height - height) / 2 - 20 + offsetY
+
+            gc.drawImage(img, x, y, width, height)
         }
     }
 }

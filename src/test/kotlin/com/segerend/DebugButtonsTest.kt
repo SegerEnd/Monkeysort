@@ -70,12 +70,12 @@ class DebugButtonsTest : ApplicationTest() {
         assertEquals(1.0, initialGameSpeedTimeFactor, "Initial game speed time factor should be 1.0 by default")
 
         // debugSpeedx25Button
-        debugButton = lookup("#debugSpeedx25Button").queryButton()
+        debugButton = lookup("#debugSpeedx5Button").queryButton()
         initialButtonAssert(debugButton)
         fireButton(debugButton)
-        assertEquals(25.0, GameStats.timeFactor, "Game speed should be set to 25x after clicking the debug speed x25 button")
+        assertEquals(5.0, GameStats.timeFactor, "Game speed should be set to x5 after clicking the button")
 
-        // Reset game speed by pressing again the speed x25 button
+        // Reset game speed by pressing again the speed x5 button
         fireButton(debugButton)
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset to initial value after clicking the debug speed x25 button again")
 

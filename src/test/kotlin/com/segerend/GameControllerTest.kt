@@ -38,7 +38,11 @@ class GameControllerTest {
 
     @Test
     fun tick() {
-        assertDoesNotThrow { controller.tick() }
+        val lastFrameTime = System.nanoTime()
+        val now = System.nanoTime()
+        val deltaMs = (now - lastFrameTime) / 1_000_000.0 // Convert to milliseconds
+        val frameTime = FrameTime(deltaMs, now / 1_000_000_000.0)
+        assertDoesNotThrow { controller.tick(frameTime) }
     }
 
     @Test

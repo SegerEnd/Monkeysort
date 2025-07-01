@@ -82,6 +82,7 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         // Set coins to zero, button should be disabled
         GameStats.coins = 0
         WaitForAsyncUtils.waitForFxEvents()
+        Thread.sleep(50)
         assertTrue(buyButton.isDisable, "Buy button should be disabled when there are no coins")
 
         // Set coins high enough, button should enable
@@ -162,12 +163,11 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         WaitForAsyncUtils.waitForFxEvents()
 
         // check if the coins balance is increased by the combo reward
-        val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 3 // 4 CHERRY fruits in the combo
+        val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 3 // 3 CHERRY fruits in the combo
         assertTrue(
             GameStats.coins >= initialCoinsBalance + expectedComboReward,
             "Coins should be increased by the combo reward after completing a combo task"
         )
-        assertTrue(GameStats.coins > initialCoinsBalance, "Coins should be increased after completing a combo task")
     }
 
     @Test
