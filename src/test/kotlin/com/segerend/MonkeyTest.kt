@@ -108,7 +108,9 @@ class MonkeyTest {
         // Assign a task and check if the monkey is not idle
         val task = ShuffleTask(Pos(0, 0), Pos(1, 1), Fruit.APPLE)
         monkey.assignTask(task)
-        assertFalse(monkey.isIdle(), "Monkey should not be idle after assigning a task")
+        Thread.sleep(75)
+//        assertFalse(monkey.isIdle(), "Monkey should not be idle after assigning a task")
+        assertTrue(monkey.state is MovingToSourceState, "Monkey should be in MovingToSourceState after assigning a task")
 
         val wanderingMonkey = Monkey(SortAlgorithm.BOGO)
         wanderingMonkey.state = com.segerend.monkey.WanderingState(2.0, 2.0, GameConfig.CELL_SIZE)

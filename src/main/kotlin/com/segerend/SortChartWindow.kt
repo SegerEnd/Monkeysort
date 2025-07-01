@@ -77,11 +77,6 @@ class SortChartWindow private constructor(private val controller: GameController
                 val rank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
                 val data = XYChart.Data<String, Number>(index.toString(), rank)
                 series.data.add(data)
-
-                // After the node is created, set the bar color
-                data.nodeProperty().addListener { _, _, node ->
-                    node?.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
-                }
             }
         }
 

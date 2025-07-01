@@ -38,9 +38,9 @@ class SortChartWindowTest : ApplicationTest() {
         assertNotNull(chartButton, "Chart button should not be null")
         assertTrue(chartButton.isVisible, "Chart button should be visible")
         assertFalse(chartButton.isDisabled, "Chart button should not be disabled")
+
         WaitForAsyncUtils.waitForFxEvents()
 
-//        chartButton.fire()
         clickOn(chartButton) // clickOn is needed otherwise the chart window does not open with .fire()
 
         WaitForAsyncUtils.waitForFxEvents()
@@ -61,6 +61,8 @@ class SortChartWindowTest : ApplicationTest() {
         WaitForAsyncUtils.waitForFxEvents()
 
         // click the #toggleAnimButton
+        Thread.sleep(200)
+        WaitForAsyncUtils.waitForFxEvents()
         val toggleAnimButton = sortChartWindow.root.lookup("#toggleAnimButton") as? Button
 
         assertNotNull(toggleAnimButton, "Toggle Animations button should not be null")

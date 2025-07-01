@@ -33,7 +33,6 @@ object AccessibilityUtil {
 
     private fun isWindowsAccessibilityAvailable(): Boolean {
         // There is no reliable cross-JVM way to check this.
-        // You could add native code or PowerShell checks, but we'll assume true for now.
         return true
     }
 }
