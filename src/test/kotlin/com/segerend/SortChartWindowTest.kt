@@ -31,6 +31,7 @@ class SortChartWindowTest : ApplicationTest() {
             stage.requestFocus()
         }
         WaitForAsyncUtils.waitForFxEvents()
+        Thread.sleep(100)
 
         // check if user has accesibility settings enabled on macbook for clickOn
 
@@ -61,7 +62,7 @@ class SortChartWindowTest : ApplicationTest() {
         WaitForAsyncUtils.waitForFxEvents()
 
         // click the #toggleAnimButton
-        Thread.sleep(200)
+        Thread.sleep(300)
         WaitForAsyncUtils.waitForFxEvents()
         val toggleAnimButton = sortChartWindow.root.lookup("#toggleAnimButton") as? Button
 
@@ -71,10 +72,13 @@ class SortChartWindowTest : ApplicationTest() {
 
         assertFalse(barChart.animated, "BarChart should not be animated initially")
         clickOn(toggleAnimButton)
+        Thread.sleep(50)
         WaitForAsyncUtils.waitForFxEvents()
         assertTrue(barChart.animated, "BarChart should be animated after clicking the toggle button")
+
         // check if it toggles back to false
         clickOn(toggleAnimButton)
+        Thread.sleep(50)
         WaitForAsyncUtils.waitForFxEvents()
         assertFalse(barChart.animated, "BarChart should not be animated after toggling back")
 
