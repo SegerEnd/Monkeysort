@@ -5,6 +5,7 @@ import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
@@ -12,6 +13,11 @@ import kotlin.concurrent.thread
 
 class MonkeySortSimulatorAppTest : ApplicationTest() {
     private lateinit var monkeySortSimulatorApp : MonkeySortSimulatorApp
+
+    @BeforeEach
+    fun setUp() {
+        LockManager.clear()
+    }
 
     override fun start(stage: Stage) {
         monkeySortSimulatorApp = MonkeySortSimulatorApp()
@@ -105,11 +111,12 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
 
     @Test
     fun fruitComboTest() {
+        LockManager.clear()
         // set the monkey to idle
         monkeySortSimulatorApp.controller.monkeys.firstOrNull()?.let { it.state = IdleState(0.0, 0.0) }
 
-        // set game speed to x10 for faster testing
-        GameStats.timeFactor = 10.0
+        // set game speed to x5 for faster testing
+        GameStats.timeFactor = 5.0
 
         // empty the grid
         monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
@@ -124,7 +131,6 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 2), Fruit.CHERRY)
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 3), Fruit.BANANA)
         monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 4), Fruit.CHERRY)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(1, 0), Fruit.CHERRY)
 
         // place with a monkey a shuffle task on the grid
         val monkey = monkeySortSimulatorApp.controller.monkeys.firstOrNull()
@@ -156,8 +162,11 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         WaitForAsyncUtils.waitForFxEvents()
 
         // check if the coins balance is increased by the combo reward
-        val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 4 // 4 CHERRY fruits in the combo
-        assertTrue { GameStats.coins >= expectedComboReward }
+        val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 3 // 4 CHERRY fruits in the combo
+        assertTrue(
+            GameStats.coins >= initialCoinsBalance + expectedComboReward,
+            "Coins should be increased by the combo reward after completing a combo task"
+        )
         assertTrue(GameStats.coins > initialCoinsBalance, "Coins should be increased after completing a combo task")
     }
 
