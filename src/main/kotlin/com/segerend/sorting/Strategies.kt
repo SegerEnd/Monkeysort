@@ -44,12 +44,19 @@ class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
 class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
     private var sortedIndex = 1
     private var compareIndex = 1
+    private var didSwap = false
 
     override fun getNextTask(grid: GridModel): ShuffleTask? {
         val totalCells = rows * cols
 
         if (sortedIndex >= totalCells) {
             return null
+        }
+
+        if (didSwap) {
+            // After swap, move compareIndex backward
+            compareIndex--
+            didSwap = false
         }
 
         if (compareIndex > 0) {
@@ -59,7 +66,7 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
             val posB = Pos(indexB / cols, indexB % cols)
 
             if (grid.get(posA) != Fruit.EMPTY && grid.get(posB) != Fruit.EMPTY && grid.get(posA).name > grid.get(posB).name) {
-                compareIndex--
+                didSwap = true
                 return ShuffleTask(posA, posB, grid.get(posA))
             } else {
                 sortedIndex++

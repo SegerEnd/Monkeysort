@@ -49,11 +49,8 @@ class IdleState(private val x: Double, private val y: Double) : MonkeyState {
     }
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
-        gc.fill = Color.CHOCOLATE
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
-        gc.font = Utils.emojiCompatibleFont(10.0)
-        gc.fillText("💤", x + cellSize / 2, y + cellSize * 0.1)
+        val (x, y) = getDrawPosition()
+        monkey.drawWithOverlay(gc, x, y, cellSize, "💤")
     }
 
     override fun getDrawPosition(): Pair<Double, Double> = x to y
@@ -76,9 +73,7 @@ class MovingToSourceState(private val task: ShuffleTask, private val cellSize: D
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         val (x, y) = getDrawPosition()
-        gc.fill = Color.CHOCOLATE
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
+        monkey.drawBase(gc, x, y, cellSize)
     }
 }
 
@@ -105,11 +100,7 @@ class CarryingState(private val task: ShuffleTask, private val cellSize: Double,
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         val (x, y) = getDrawPosition()
-        gc.fill = Color.OLIVEDRAB
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
-        gc.fill = Color.CHOCOLATE
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
+        monkey.drawWithCarriedFruit(gc, x, y, cellSize)
     }
 }
 
@@ -130,11 +121,7 @@ class ReturningState(private val task: ShuffleTask, private val cellSize: Double
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         val (x, y) = getDrawPosition()
-        gc.fill = Color.OLIVEDRAB
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(monkey.fruitBeingCarried!!.emoji, x + 2, y - 2)
-        gc.fill = Color.CHOCOLATE
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
+        monkey.drawWithCarriedFruit(gc, x, y, cellSize)
     }
 }
 
@@ -166,11 +153,7 @@ class WanderingState(startX: Double, startY: Double, cellSize: Double) : Progres
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
         val (x, y) = getDrawPosition()
-        gc.fill = Color.CHOCOLATE
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
-        gc.font = Utils.emojiCompatibleFont(10.0)
-        gc.fillText("🗺️", x + cellSize / 2, y + cellSize * 0.6)
+        monkey.drawWithOverlay(gc, x, y, cellSize, "🗺️", cellSize * 0.6)
     }
 }
 
@@ -184,11 +167,8 @@ class ChattingState(private val x: Double, private val y: Double) : MonkeyState 
     }
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
-        gc.fill = Color.CHOCOLATE
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
-        gc.font = Utils.emojiCompatibleFont(10.0)
-        gc.fillText("💬", x + cellSize / 2, y + cellSize * 0.1)
+        val (x, y) = getDrawPosition()
+        monkey.drawWithOverlay(gc, x, y, cellSize, "💬")
     }
 
     override fun getDrawPosition(): Pair<Double, Double> = x to y
@@ -204,11 +184,8 @@ class DancingState(private val x: Double, private val y: Double) : MonkeyState {
     }
 
     override fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double) {
-        gc.fill = Color.CHOCOLATE
-        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
-        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
-        gc.font = Utils.emojiCompatibleFont(10.0)
-        gc.fillText("🎶", x + cellSize / 2, y + cellSize * 0.1)
+        val (x, y) = getDrawPosition()
+        monkey.drawWithOverlay(gc, x, y, cellSize, "🎶")
     }
 
     override fun getDrawPosition(): Pair<Double, Double> = x to y

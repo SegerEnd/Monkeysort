@@ -206,6 +206,27 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
         )
     }
 
+    fun drawBase(gc: GraphicsContext, x: Double, y: Double, cellSize: Double) {
+        gc.fill = Color.CHOCOLATE
+        gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+        gc.fillText(GameConfig.DEFAULT_MONKEY, x + 2, y + cellSize * 0.55)
+    }
+
+    fun drawWithOverlay(gc: GraphicsContext, x: Double, y: Double, cellSize: Double, overlay: String, overlayOffsetY: Double = cellSize * 0.1) {
+        drawBase(gc, x, y, cellSize)
+        gc.font = Utils.emojiCompatibleFont(10.0)
+        gc.fillText(overlay, x + cellSize / 2, y + overlayOffsetY)
+    }
+
+    fun drawWithCarriedFruit(gc: GraphicsContext, x: Double, y: Double, cellSize: Double) {
+        fruitBeingCarried?.let {
+            gc.fill = Color.OLIVEDRAB
+            gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+            gc.fillText(it.emoji, x + 2, y - 2)
+        }
+        drawBase(gc, x, y, cellSize)
+    }
+
     fun isIdle(): Boolean {
         return state is IdleState || state is WanderingState || state is ChattingState || state is DancingState
     }
