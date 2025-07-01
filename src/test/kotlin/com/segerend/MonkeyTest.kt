@@ -17,6 +17,7 @@ class MonkeyTest {
 
     @BeforeEach
     fun setUp() {
+        LockManager.clear()
         monkey = Monkey(SortAlgorithm.BOGO)
         grid = GridModel()
     }
@@ -65,7 +66,9 @@ class MonkeyTest {
 
     @Test
     fun update() {
-        monkey.update(0.1, grid, GameConfig.CELL_SIZE, ParticleSystem())
+        assertDoesNotThrow {
+            monkey.update(0.1, grid, GameConfig.CELL_SIZE, ParticleSystem())
+        }
     }
 
     @Test
@@ -102,7 +105,9 @@ class MonkeyTest {
 
     @Test
     fun isIdle() {
-        // Check if the monkey is idle initially
+        val monkey = Monkey(SortAlgorithm.BOGO)
+        LockManager.clear()
+
         assertTrue(monkey.isIdle(), "Monkey should be idle initially")
 
         // Assign a task and check if the monkey is not idle
@@ -110,6 +115,8 @@ class MonkeyTest {
         monkey.assignTask(task)
         Thread.sleep(75)
 //        assertFalse(monkey.isIdle(), "Monkey should not be idle after assigning a task")
+        println("Monkey state after assigning task: ${monkey.state}")
+        println("Is monkey idle? ${monkey.isIdle()}")
         assertTrue(monkey.state is MovingToSourceState, "Monkey should be in MovingToSourceState after assigning a task")
 
         val wanderingMonkey = Monkey(SortAlgorithm.BOGO)
@@ -119,5 +126,7 @@ class MonkeyTest {
         val chattingMonkey = Monkey(SortAlgorithm.BOGO)
         chattingMonkey.state = com.segerend.monkey.ChattingState(2.0, 2.0)
         assertTrue(chattingMonkey.isIdle(), "Monkey should be idle after chatting state")
+
+        LockManager.clear()
     }
 }

@@ -140,7 +140,7 @@ object LockManager {
     }
 }
 
-class Monkey(algorithm: SortAlgorithm) {
+class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
     var algorithm: SortAlgorithm = algorithm
         set(value) {
             field = value
@@ -213,7 +213,7 @@ class Monkey(algorithm: SortAlgorithm) {
 // --- Game Controller ---
 
 class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
-    val gridModel = GridModel(rows, cols)
+    var gridModel = GridModel(rows, cols)
     val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO)) // Start with one monkey
     val particleSystem = ParticleSystem()
     private var lastTickTime = System.nanoTime()

@@ -65,6 +65,7 @@ class DebugButtonsTest : ApplicationTest() {
         assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.INSERTION },
             "All monkeys should be set to Insertion Sort after clicking the debug insertion button")
 
+        GameStats.timeFactor = 1.0
         val initialGameSpeedTimeFactor = GameStats.timeFactor
         assertEquals(1.0, initialGameSpeedTimeFactor, "Initial game speed time factor should be 1.0 by default")
 

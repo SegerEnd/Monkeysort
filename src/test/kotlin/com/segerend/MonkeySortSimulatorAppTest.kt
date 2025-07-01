@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
+import kotlin.concurrent.thread
 
 class MonkeySortSimulatorAppTest : ApplicationTest() {
     private lateinit var monkeySortSimulatorApp : MonkeySortSimulatorApp
