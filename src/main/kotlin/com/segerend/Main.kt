@@ -79,8 +79,10 @@ class GridModel(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS
     }
 
     fun getComboCellsAt(pos: Pos): List<Pos> {
+        val fruit = get(pos)
+        if (fruit == Fruit.EMPTY) return emptyList() // Empty cell may not have combos
+
         fun collectMatches(direction: (Int) -> Pos): List<Pos> {
-            val fruit = get(pos)
             val matches = mutableListOf(pos)
             var offset = 1
             while (true) {
@@ -96,7 +98,7 @@ class GridModel(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS
         val result = mutableSetOf<Pos>()
         if (horizontal.size >= 3) result.addAll(horizontal)
         if (vertical.size >= 3) result.addAll(vertical)
-        return return result.toList()
+        return result.toList()
     }
 
     fun getSameFruitCount(fruit: Fruit): Int {

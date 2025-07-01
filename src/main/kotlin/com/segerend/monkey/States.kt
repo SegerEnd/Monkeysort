@@ -41,7 +41,7 @@ abstract class ProgressState : MonkeyState {
 
 class IdleState(private val x: Double, private val y: Double) : MonkeyState {
     override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        when ((1..10).random()) {
+        when ((1..5).random()) {
             1 -> monkey.state = WanderingState(x, y, cellSize)
             2 -> monkey.state = ChattingState(x, y)
             3 -> monkey.state = DancingState(x, y)
@@ -95,10 +95,10 @@ class CarryingState(private val task: ShuffleTask, private val cellSize: Double,
         grid.set(task.to, monkey.fruitBeingCarried!!)
         monkey.fruitBeingCarried = oldFruit
         monkey.state = ReturningState(task, cellSize, endX, endY)
-        val comboCount = grid.getComboCellsAt(task.to).size
+        val comboPositions = grid.getComboCellsAt(task.to)
+        val comboCount = comboPositions.size
         if (comboCount >= 2) {
             GameStats.coins += comboCount * GameConfig.COMBO_REWARD_MULTIPLIER
-            val comboPositions = grid.getComboCellsAt(task.to)
             if (comboPositions.isNotEmpty()) particleSystem.add(ComboParticleEffect(comboPositions, cellSize))
         }
     }
