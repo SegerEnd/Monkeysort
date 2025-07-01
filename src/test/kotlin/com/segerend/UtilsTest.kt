@@ -26,4 +26,12 @@ class UtilsTest {
         val rgbString = color.toRgbString()
         assertEquals("rgb(255, 0, 0)", rgbString, "Color.toRgbString should return the correct RGB string")
     }
+
+    @Test
+    fun `test reset GameStats`() {
+        GameStats.coins = 700
+        GameStats.reset()
+        assertEquals(50, GameStats.coins, "GameStats should reset coins to 50 starter money")
+        assertEquals(1.0, GameStats.timeFactor, "GameStats speed timeFactor should reset to 1.0")
+    }
 }

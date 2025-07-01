@@ -367,8 +367,6 @@ class MonkeySortSimulatorApp : Application() {
         var lastFrameTime = System.nanoTime()
 
         object : AnimationTimer() {
-            var lastFrameTime = System.nanoTime()
-
             override fun handle(now: Long) {
                 val deltaSeconds = (now - lastFrameTime) / 1_000_000_000.0
                 if (deltaSeconds >= 1.0 / GameConfig.MAX_FPS) {
@@ -415,6 +413,8 @@ class MonkeySortSimulatorApp : Application() {
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
+            GameStats.timeFactor = 1.0 // Set time speed back to normal when sorted
+
             val img = completedImage
             val wave = kotlin.math.sin(frameTime.currentTimeSec * 2 * Math.PI * 0.5)
             val scale = 1.0 + 0.01 * wave

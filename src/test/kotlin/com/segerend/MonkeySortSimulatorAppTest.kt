@@ -1,18 +1,25 @@
 package com.segerend
 
 import com.segerend.monkey.IdleState
+import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testfx.api.FxToolkit
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
 import kotlin.concurrent.thread
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MonkeySortSimulatorAppTest : ApplicationTest() {
     private lateinit var monkeySortSimulatorApp : MonkeySortSimulatorApp
+    private lateinit var stage: Stage
 
     @BeforeEach
     fun setUp() {
@@ -20,6 +27,7 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
     }
 
     override fun start(stage: Stage) {
+        this.stage = stage
         monkeySortSimulatorApp = MonkeySortSimulatorApp()
         monkeySortSimulatorApp.start(stage)
 //        stage.isMaximized = false
@@ -77,92 +85,108 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
     @Test
     fun automaticButtonChanges() {
         var monkeyCount = monkeySortSimulatorApp.controller.monkeys.size
+
+        WaitForAsyncUtils.waitForFxEvents()
         val buyButton = lookup("#buyButton").queryButton()
 
-        // Set coins to zero, button should be disabled
-        GameStats.coins = 0
+        interact {
+            GameStats.coins = 0
+        }
         WaitForAsyncUtils.waitForFxEvents()
-        Thread.sleep(50)
         assertTrue(buyButton.isDisable, "Buy button should be disabled when there are no coins")
 
-        // Set coins high enough, button should enable
-        GameStats.coins = monkeySortSimulatorApp.controller.getNewMonkeyPrice() + 10
+        interact {
+            GameStats.coins = monkeySortSimulatorApp.controller.getNewMonkeyPrice() + 10
+        }
         WaitForAsyncUtils.waitForFxEvents()
-        assertTrue(GameStats.coins > 0, "Coins should be greater than zero")
+        assertFalse(buyButton.isDisable, "Buy button should be enabled when there are enough coins")
 
-        // Refresh buyButton reference after UI update (optional but safer)
-        val updatedBuyButton = lookup("#buyButton").queryButton()
-        assertFalse(updatedBuyButton.isDisable, "Buy button should be enabled when there are enough coins")
-
-        // Fire the buy button action on the FX thread
-        updatedBuyButton.fire()
-
+        interact {
+            buyButton.fire()
+        }
         WaitForAsyncUtils.waitForFxEvents()
+        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size)
 
-        // check if one monkey is added to the game
-        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size, "A monkey should be added to the game after buying")
-
-        // when coins are zero press the buy button again, it should not add a monkey
-        GameStats.coins = 0
-        updatedBuyButton.isDisable = false // Manually enable the button for testing
-        updatedBuyButton.fire()
+        interact {
+            GameStats.coins = 0
+            buyButton.isDisable = false
+            buyButton.fire()
+        }
         WaitForAsyncUtils.waitForFxEvents()
-        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size, "No monkey should be added when coins are zero")
+        assertEquals(monkeyCount + 1, monkeySortSimulatorApp.controller.monkeys.size)
     }
 
     @Test
     fun fruitComboTest() {
         LockManager.clear()
-        // set the monkey to idle
-        monkeySortSimulatorApp.controller.monkeys.firstOrNull()?.let { it.state = IdleState(0.0, 0.0) }
 
-        // set game speed to x5 for faster testing
-        GameStats.timeFactor = 5.0
+        val monkey = monkeySortSimulatorApp.controller.monkeys.firstOrNull()
+        assertNotNull(monkey, "There should be at least one monkey in the game")
 
-        // empty the grid
-        monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
+        // Set the monkey to idle safely on FX thread
+        interact {
+            monkey!!.state = IdleState(0.0, 0.0)
+            monkey.algorithm = SortAlgorithm.BUBBLE // Set sorting algorithm
+        }
+
+        // Set game speed to x5 for faster testing safely
+        interact {
+            GameStats.timeFactor = 5.0
+        }
+
+        // Empty the grid and verify it’s empty
+        interact {
+            monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY)
+        }
+        WaitForAsyncUtils.waitForFxEvents()
         assertTrue(
             monkeySortSimulatorApp.controller.gridModel.getGridCopy().all { row -> row.all { it == Fruit.EMPTY } },
             "GridModel should be filled with EMPTY fruits"
         )
 
-        // Set up a grid with a 4-cell horizontal combo
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 0), Fruit.CHERRY)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 1), Fruit.APPLE)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 2), Fruit.CHERRY)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 3), Fruit.BANANA)
-        monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 4), Fruit.CHERRY)
+        // Set up a grid with a 4-cell horizontal combo on FX thread
+        interact {
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 0), Fruit.CHERRY)
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 1), Fruit.APPLE)
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 2), Fruit.CHERRY)
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 3), Fruit.BANANA)
+            monkeySortSimulatorApp.controller.gridModel.set(Pos(0, 4), Fruit.CHERRY)
+        }
+        WaitForAsyncUtils.waitForFxEvents()
 
-        // place with a monkey a shuffle task on the grid
-        val monkey = monkeySortSimulatorApp.controller.monkeys.firstOrNull()
-        assertNotNull(monkey, "There should be at least one monkey in the game")
-        monkey!!.algorithm = SortAlgorithm.BUBBLE // Ensure the monkey is using a sorting algorithm
-
-        var iterations = 0
-        val maxIterations = 1000
-
-        // set coins to 0
-        GameStats.coins = 0
+        // Reset coins to 0 safely
+        interact {
+            GameStats.coins = 0
+        }
         WaitForAsyncUtils.waitForFxEvents()
         val initialCoinsBalance = GameStats.coins
 
-        // wait for the monkey to complete the task
-        while (!monkeySortSimulatorApp.controller.gridModel.isSorted() && iterations < maxIterations) {
-            // sleep this function for 500 milliseconds
-            Thread.sleep(500)
-            if (monkey.isIdle()) {
-                val task = monkey.strategy.getNextTask(monkeySortSimulatorApp.controller.gridModel)
-                if (task != null) {
-                    monkey.assignTask(task, GameConfig.CELL_SIZE)
+        // Poll and assign tasks until grid is sorted or timeout
+        val maxWaitTimeMs = 30_000L
+        val pollIntervalMs = 500L
+        var elapsed = 0L
+
+        while (!monkeySortSimulatorApp.controller.gridModel.isSorted() && elapsed < maxWaitTimeMs) {
+            Thread.sleep(pollIntervalMs)
+            elapsed += pollIntervalMs
+
+            interact {
+                if (monkey!!.isIdle()) {
+                    val task = monkey.strategy.getNextTask(monkeySortSimulatorApp.controller.gridModel)
+                    if (task != null) {
+                        monkey.assignTask(task, GameConfig.CELL_SIZE)
+                    }
                 }
             }
         }
 
-        assertTrue(monkeySortSimulatorApp.controller.gridModel.isSorted(), "Grid should be sorted after completing the combo task")
+        assertTrue(
+            monkeySortSimulatorApp.controller.gridModel.isSorted(),
+            "Grid should be sorted after completing the combo task"
+        )
 
         WaitForAsyncUtils.waitForFxEvents()
 
-        // check if the coins balance is increased by the combo reward
         val expectedComboReward = GameConfig.COMBO_REWARD_MULTIPLIER * 3 // 3 CHERRY fruits in the combo
         assertTrue(
             GameStats.coins >= initialCoinsBalance + expectedComboReward,
@@ -207,5 +231,28 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
 
         // Check if the 10 monkeys are added to the game
         assertEquals(16, monkeySortSimulatorApp.controller.monkeys.size, "There should be 16 monkeys in the game after spawning two times the 5 more monkeys")
+    }
+
+    @AfterEach
+    fun cleanup() {
+        LockManager.clear()
+        FxToolkit.cleanupStages()
+        FxToolkit.cleanupApplication(monkeySortSimulatorApp)
+        GameStats.reset() // Reset game stats after each test
+    }
+
+    @AfterAll
+    fun tearDown() {
+        // Any global cleanup after all tests
+        LockManager.clear()
+        Platform.runLater {
+            if (stage.isShowing) {
+                stage.close()
+            }
+            monkeySortSimulatorApp.controller.monkeys.clear()
+        }
+        WaitForAsyncUtils.waitForFxEvents()
+        monkeySortSimulatorApp.controller.gridModel.fill(Fruit.EMPTY) // Clear the grid model
+        monkeySortSimulatorApp = MonkeySortSimulatorApp() // Reset the app instance
     }
 }

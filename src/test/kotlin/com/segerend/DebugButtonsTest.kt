@@ -1,12 +1,17 @@
 package com.segerend
 
+import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.stage.Stage
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DebugButtonsTest : ApplicationTest() {
     private lateinit var monkeySortSimulatorApp: MonkeySortSimulatorApp
     private lateinit var stage: Stage
@@ -36,58 +41,82 @@ class DebugButtonsTest : ApplicationTest() {
 
     @Test
     fun testDebugButtons() {
+        fun assertAllMonkeysAlgorithm(expected: SortAlgorithm, message: String) {
+            assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == expected }, message)
+        }
+
+        fun clickButton(buttonId: String) {
+            Platform.runLater {
+                val button = lookup(buttonId).queryButton()
+                initialButtonAssert(button)
+                fireButton(button)
+            }
+            WaitForAsyncUtils.waitForFxEvents()
+        }
+
         // Spawn 5 monkeys
-        var debugButton = lookup("#debugSpawn5MonkeysButton").queryButton()
-        assertNotNull(debugButton, "Debug button should be present in the UI")
-        fireButton(debugButton)
+        Platform.runLater {
+            val debugButton = lookup("#debugSpawn5MonkeysButton").queryButton()
+            assertNotNull(debugButton, "Debug button should be present in the UI")
+            fireButton(debugButton)
+        }
+        WaitForAsyncUtils.waitForFxEvents()
         assertEquals(6, monkeySortSimulatorApp.controller.monkeys.size, "There should be 6 monkeys after spawning 5")
-        // check if all monkeys are bogosort initially
-        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.BOGO })
+        assertAllMonkeysAlgorithm(SortAlgorithm.BOGO, "All monkeys should be BogoSort initially")
 
-        debugButton = lookup("#debugBubbleButton").queryButton()
-        initialButtonAssert(debugButton)
-        fireButton(debugButton)
-        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.BUBBLE },
-            "All monkeys should be set to Bubble Sort after clicking the debug bubble button")
+        // Debug buttons for setting sorting algorithms
+        val algorithmButtons = mapOf(
+            "#debugBubbleButton" to SortAlgorithm.BUBBLE,
+            "#debugBogoButton" to SortAlgorithm.BOGO,
+            "#debugInsertionButton" to SortAlgorithm.INSERTION
+        )
 
+        algorithmButtons.forEach { (buttonId, algorithm) ->
+            clickButton(buttonId)
+            assertAllMonkeysAlgorithm(algorithm, "All monkeys should be set to $algorithm after clicking $buttonId")
+        }
+
+        // GameStats speed button tests
+        Platform.runLater {
+            GameStats.timeFactor = 1.0
+        }
         WaitForAsyncUtils.waitForFxEvents()
 
-        // Check if the debug buttons are present
-        debugButton = lookup("#debugBogoButton").queryButton()
-        initialButtonAssert(debugButton)
-        fireButton(debugButton)
-        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.BOGO },
-            "All monkeys should be set to Bogo Sort after clicking the debug bogo button")
-
-        debugButton = lookup("#debugInsertionButton").queryButton()
-        initialButtonAssert(debugButton)
-        fireButton(debugButton)
-        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.INSERTION },
-            "All monkeys should be set to Insertion Sort after clicking the debug insertion button")
-
-        GameStats.timeFactor = 1.0
         val initialGameSpeedTimeFactor = GameStats.timeFactor
         assertEquals(1.0, initialGameSpeedTimeFactor, "Initial game speed time factor should be 1.0 by default")
 
-        // debugSpeedx25Button
-        debugButton = lookup("#debugSpeedx5Button").queryButton()
-        initialButtonAssert(debugButton)
-        fireButton(debugButton)
+        // Speed x5 button
+        clickButton("#debugSpeedx5Button")
         assertEquals(5.0, GameStats.timeFactor, "Game speed should be set to x5 after clicking the button")
 
-        // Reset game speed by pressing again the speed x5 button
-        fireButton(debugButton)
-        assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset to initial value after clicking the debug speed x25 button again")
+        clickButton("#debugSpeedx5Button")
+        assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the speed x5 button again")
 
-        debugButton = lookup("#debugSuperSpeedButton").queryButton()
-        initialButtonAssert(debugButton)
-        fireButton(debugButton)
-        assertEquals(1000000.0, GameStats.timeFactor, "Game speed should be set to super speed after clicking the debug super speed button")
+        // Super speed button
+        clickButton("#debugSuperSpeedButton")
+        assertEquals(1_000_000.0, GameStats.timeFactor, "Game speed should be set to super speed after clicking the button")
 
+        clickButton("#debugSuperSpeedButton")
+        assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the super speed button again")
+    }
+
+    @AfterEach
+    fun tearDownEach() {
+        LockManager.clear()
+        GameStats.reset()
+    }
+
+    @AfterAll
+    fun tearDownAll() {
+        // Close the application after each test
+        Platform.runLater {
+            if (stage.isShowing) {
+                stage.close()
+            }
+            monkeySortSimulatorApp.controller.monkeys.clear()
+        }
         WaitForAsyncUtils.waitForFxEvents()
 
-        // Reset game speed by pressing again the super speed button
-        fireButton(debugButton)
-        assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset to initial value after clicking the debug super speed button again")
+        monkeySortSimulatorApp = MonkeySortSimulatorApp()
     }
 }
