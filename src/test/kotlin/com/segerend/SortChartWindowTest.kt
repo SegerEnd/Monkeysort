@@ -29,6 +29,7 @@ class SortChartWindowTest : ApplicationTest() {
         Platform.runLater {
             newSortChartWindow = SortChartWindow(monkeySortSimulatorApp.controller)
             assertNotNull(newSortChartWindow, "SortChartWindow should not be null")
+            assertNotNull(newSortChartWindow.root, "SortChartWindow should not be null")
         }
         WaitForAsyncUtils.waitForFxEvents()
         assertDoesNotThrow({
@@ -45,6 +46,8 @@ class SortChartWindowTest : ApplicationTest() {
         }
         WaitForAsyncUtils.waitForFxEvents()
         LockManager.clear()
+
+
     }
 
 
