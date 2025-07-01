@@ -16,6 +16,7 @@ import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import kotlin.random.Random
+import javafx.scene.image.Image
 
 // --- Constants ---
 object GameConfig {
@@ -336,6 +337,12 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    private val completedImage: Image by lazy {
+        val stream = javaClass.getResourceAsStream("/completed.png")
+            ?: error("Image resource not found: completed.png")
+        Image(stream)
+    }
+
     override fun start(primaryStage: Stage) {
         val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
         val gc = canvas.graphicsContext2D
@@ -399,12 +406,11 @@ class MonkeySortSimulatorApp : Application() {
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
-            gc.fill = Color.DODGERBLUE
-            gc.fillRoundRect(gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 50, 300.0, 75.0, 20.0, 20.0)
-            gc.fill = Color.ORANGE
-            gc.font = Utils.emojiCompatibleFont(24.0)
-            gc.fillText("🎉 MONKEYSORT FINISHED! 🎉", gc.canvas.width / 2 - 150, gc.canvas.height / 2 - 20)
-            controller.particleSystem.add(ConfettiEffect(gc.canvas.width, gc.canvas.height, 1000L))
+//            gc.fill = Color.DODGERBLUE
+            val img = completedImage
+            val imgX = gc.canvas.width / 2 - img.width / 2
+            val imgY = gc.canvas.height / 2 - img.height / 2 - 20
+            gc.drawImage(img, imgX, imgY)
         }
     }
 }
