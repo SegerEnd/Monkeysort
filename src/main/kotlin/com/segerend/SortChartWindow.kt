@@ -68,7 +68,7 @@ class SortChartWindow internal constructor(private val controller: GameControlle
         val grid = controller.gridModel.getGridCopy()
         val flatList = grid.flatten()
 
-        val BATCH_SIZE = 250
+        val BATCH_SIZE = 125
 
         // Load first batch quickly
         Thread {
@@ -108,7 +108,6 @@ class SortChartWindow internal constructor(private val controller: GameControlle
                         val targetRank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
                         data.yValue = targetRank
 
-                        // Optional: apply color styling lazily
                         data.node?.let { node ->
                             node.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
                         }

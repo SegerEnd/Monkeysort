@@ -165,8 +165,8 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
 
     private fun getSpeedPerTick(): Double = when (algorithm) {
         SortAlgorithm.BOGO -> 1.0
-        SortAlgorithm.BUBBLE -> 12.0
-        SortAlgorithm.INSERTION -> 12.0
+        SortAlgorithm.BUBBLE -> 25.0
+        SortAlgorithm.INSERTION -> 25.0
     }
 
     fun assignTask(task: ShuffleTask, cellSize: Double = GameConfig.CELL_SIZE): Boolean {
@@ -404,6 +404,11 @@ class MonkeySortSimulatorApp : Application() {
                     val frameTime = FrameTime(deltaMs, now / 1_000_000_000.0)
                     controller.tick(frameTime)
                     draw(gc, frameTime)
+
+                    if (controller.gridModel.isSorted()) {
+                        GameStats.timeFactor = 1.0
+                        controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+                    }
                 }
             }
         }.start()
@@ -441,8 +446,6 @@ class MonkeySortSimulatorApp : Application() {
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
-            GameStats.timeFactor = 1.0 // Set time speed back to normal when sorted
-
             val img = completedImage
             val wave = kotlin.math.sin(frameTime.currentTimeSec * 2 * Math.PI * 0.5)
             val scale = 1.0 + 0.01 * wave

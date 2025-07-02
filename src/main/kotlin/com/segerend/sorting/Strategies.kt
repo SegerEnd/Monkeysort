@@ -42,40 +42,37 @@ class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
 }
 
 class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
-    private var sortedIndex = 1
+    private var currentIndex = 1
     private var compareIndex = 1
-    private var didSwap = false
 
     override fun getNextTask(grid: GridModel): ShuffleTask? {
         val totalCells = rows * cols
 
-        if (sortedIndex >= totalCells) {
-            return null
-        }
+        if (currentIndex >= totalCells) return null  // Sorting is done
 
-        if (didSwap) {
-            // After swap, move compareIndex backward
-            compareIndex--
-            didSwap = false
-        }
+        val indexA = compareIndex - 1
+        val indexB = compareIndex
 
-        if (compareIndex > 0) {
-            val indexA = compareIndex - 1
-            val indexB = compareIndex
+        if (indexA >= 0) {
             val posA = Pos(indexA / cols, indexA % cols)
             val posB = Pos(indexB / cols, indexB % cols)
 
-            if (grid.get(posA) != Fruit.EMPTY && grid.get(posB) != Fruit.EMPTY && grid.get(posA).name > grid.get(posB).name) {
-                didSwap = true
-                return ShuffleTask(posA, posB, grid.get(posA))
+            val fruitA = grid.get(posA)
+            val fruitB = grid.get(posB)
+
+            if (fruitA != Fruit.EMPTY && fruitB != Fruit.EMPTY && fruitA.name > fruitB.name) {
+                compareIndex--
+                return ShuffleTask(posA, posB, fruitA)
             } else {
-                sortedIndex++
-                compareIndex = sortedIndex
+                // If no swap needed, move forward in the main loop
+                currentIndex++
+                compareIndex = currentIndex
                 return null
             }
         } else {
-            sortedIndex++
-            compareIndex = sortedIndex
+            // Reached the start, move forward
+            currentIndex++
+            compareIndex = currentIndex
             return null
         }
     }
