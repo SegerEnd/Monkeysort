@@ -24,6 +24,16 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    val sets = listOf(main.get(), test.get())
+    sets.forEach { sourceSet ->
+        sourceSet.kotlin.exclude("**/EmojiSpriteSheetGenerator.kt")
+    }
+}
+tasks.jar {
+    exclude("com/segerend/EmojiSpriteSheetGenerator.class")
+}
+
 val javafxVersion = "21"
 
 dependencies {
@@ -37,6 +47,7 @@ dependencies {
     testRuntimeOnly("org.openjfx:javafx-fxml:${javafxVersion}")
     testRuntimeOnly("org.openjfx:javafx-media:${javafxVersion}")
     testRuntimeOnly("org.openjfx:javafx-graphics:${javafxVersion}")
+    testRuntimeOnly("org.openjfx:javafx-swing:${javafxVersion}")
 
     implementation("org.openjfx:javafx-controls:$javafxVersion")
     implementation("org.openjfx:javafx-fxml:$javafxVersion")
@@ -55,7 +66,7 @@ kotlin {
 
 javafx {
     version = javafxVersion
-    modules = listOf("javafx.controls", "javafx.fxml", "javafx.media", "javafx.graphics")
+    modules = listOf("javafx.controls", "javafx.fxml", "javafx.media", "javafx.graphics", "javafx.swing")
 }
 
 jacoco {

@@ -3,7 +3,6 @@ package com.segerend
 import com.segerend.monkey.*
 import com.segerend.particles.*
 import com.segerend.sorting.*
-
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.geometry.VPos
@@ -12,15 +11,15 @@ import javafx.scene.SnapshotParameters
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Button
+import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
-import javafx.stage.Stage
-import kotlin.random.Random
-import kotlin.math.roundToInt
-import javafx.scene.image.Image
 import javafx.scene.text.TextAlignment
+import javafx.stage.Stage
+import kotlin.math.roundToInt
+import kotlin.random.Random
 
 // --- Core Game Models ---
 

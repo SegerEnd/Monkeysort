@@ -10,7 +10,7 @@ object GameConfig {
     const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
     const val COMBO_REWARD_MULTIPLIER = 15
 
-    const val MAX_FPS = 120
+    const val MAX_FPS = 60
     var fps = MAX_FPS
         set(value) {
             field = value.coerceIn(0, MAX_FPS)
