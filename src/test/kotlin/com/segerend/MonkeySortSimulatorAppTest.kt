@@ -142,6 +142,10 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
             "Coins should increase by at least $expectedComboReward from combo"
         )
 
+        GameStats.timeFactor = 0.0
+        // check if GameConfig.fps is also 0 after setting timeFactor to 0
+        assertEquals(0, GameConfig.fps, "GameConfig.fps should be 0 when timeFactor is 0")
+
         // Reset game speed
         GameStats.timeFactor = 1.0
     }

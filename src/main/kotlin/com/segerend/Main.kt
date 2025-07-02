@@ -6,7 +6,9 @@ import com.segerend.sorting.*
 
 import javafx.animation.AnimationTimer
 import javafx.application.Application
+import javafx.geometry.VPos
 import javafx.scene.Scene
+import javafx.scene.SnapshotParameters
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Button
@@ -16,22 +18,9 @@ import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import kotlin.random.Random
+import kotlin.math.roundToInt
 import javafx.scene.image.Image
-
-// --- Constants ---
-object GameConfig {
-    var ROWS = 25
-    var COLS = 25
-    const val CELL_SIZE = 24.0
-    const val MONKEY_BASE_COST = 75
-    const val MONKEY_COST_INCREASE_FACTOR = 1.1 // 10% increase per monkey
-    const val MONKEY_UPGRADE_COST = 500
-    const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
-    const val COMBO_REWARD_MULTIPLIER = 15
-    const val MAX_FPS = 60
-    const val STRIP_HEIGHT = 30.0
-    const val DEFAULT_MONKEY = "🐒"
-}
+import javafx.scene.text.TextAlignment
 
 // --- Core Game Models ---
 
@@ -247,12 +236,11 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     val monkeys = mutableListOf(Monkey(SortAlgorithm.BOGO)) // Start with one monkey
     val particleSystem = ParticleSystem()
 
-    fun tick(frameTime : FrameTime) {
-        val deltaMs = frameTime.deltaMs * GameStats.timeFactor
-//        val deltaMs = frameTime.deltaMs
+    fun tick(frameTime: FrameTime) {
+        if (GameStats.timeFactor == 0.0) return
 
-        // Convert for normalized delta use frameTime.currentTimeSec
         val delta = frameTime.deltaMs / 1000.0 * GameStats.timeFactor
+        val deltaMs = frameTime.deltaMs * GameStats.timeFactor
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
@@ -302,6 +290,35 @@ class MonkeySortSimulatorApp : Application() {
     private val sortStrip = SortStrip()
 
     internal val root = BorderPane()
+
+    private val fruitImages: Map<Fruit, Image> by lazy {
+        Fruit.values().associateWith { fruit ->
+            val canvas = Canvas(cellSize, cellSize)
+            val gc = canvas.graphicsContext2D
+
+            gc.clearRect(0.0, 0.0, cellSize, cellSize)
+
+            if (fruit != Fruit.EMPTY) {
+                gc.fill = Color.OLIVEDRAB
+                gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+
+                // Align center both horizontally and vertically
+                gc.textAlign = TextAlignment.CENTER
+                gc.textBaseline = VPos.CENTER
+
+                val centerX = cellSize / 2
+                val centerY = cellSize / 2
+
+                gc.fillText(fruit.emoji, centerX, centerY)
+            }
+
+            val params = SnapshotParameters().apply {
+                fill = Color.TRANSPARENT
+            }
+
+            canvas.snapshot(params, WritableImage(cellSize.toInt(), cellSize.toInt()))
+        }
+    }
 
     private val buyButton = Button().apply {
         id = "buyButton"
@@ -368,6 +385,13 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
+    private val pauseButton = Button("Pause").apply {
+        id = "pauseButton"
+        setOnAction {
+            GameStats.timeFactor = if (GameStats.timeFactor == 0.0) 1.0 else 0.0
+        }
+    }
+
     private val completedImage: Image by lazy {
         val stream = javaClass.getResourceAsStream("/completed.png")
             ?: error("Image resource not found: completed.png")
@@ -378,7 +402,7 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + GameConfig.STRIP_HEIGHT + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugSuperSpeedButton, chartButton)
+        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugSuperSpeedButton, chartButton, pauseButton)
         root.center = canvas
 
         val scene = Scene(root)
@@ -392,42 +416,60 @@ class MonkeySortSimulatorApp : Application() {
 
         primaryStage.show()
 
-        var lastFrameTime = System.nanoTime()
-
         object : AnimationTimer() {
+            private var lastUpdate = System.nanoTime()
+            private var lastRender = System.nanoTime()
+
+            private val targetFPS = GameConfig.fps
+            private val maxFPS = GameConfig.MAX_FPS
+
+            private val nsPerUpdate = 1_000_000_000L / targetFPS
+            private val nsPerRender = 1_000_000_000L / maxFPS
+
+            private var accumulator = 0L
+
             override fun handle(now: Long) {
-                val deltaSeconds = (now - lastFrameTime) / 1_000_000_000.0
-                if (deltaSeconds >= 1.0 / GameConfig.MAX_FPS) {
-                    val deltaMs = deltaSeconds * 1000.0
-                    lastFrameTime = now
+                val delta = now - lastUpdate
+                lastUpdate = now
+                accumulator += delta
 
-                    val frameTime = FrameTime(deltaMs, now / 1_000_000_000.0)
-                    controller.tick(frameTime)
+                // Fixed timestep updates (catch up if lagging)
+                while (accumulator >= nsPerUpdate) {
+                    val deltaTimeSeconds = nsPerUpdate / 1_000_000_000.0
+                    controller.tick(FrameTime(deltaTimeSeconds * 1000, now / 1_000_000_000.0))
+                    accumulator -= nsPerUpdate
+                }
 
-                    if (controller.gridModel.isSorted()) {
-                        GameStats.timeFactor = 1.0
-                        controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
-                    }
-
-                    draw(gc, frameTime)
+                // Cap rendering to MAX_FPS
+                if (now - lastRender >= nsPerRender) {
+                    // Optionally pass interpolation factor: accumulator / nsPerUpdate * 1000
+                    draw(gc, FrameTime(accumulator / 1_000_000.0, now / 1_000_000_000.0))
+                    lastRender = now
                 }
             }
         }.start()
     }
 
+    private var lastRenderTime = System.nanoTime()
+
     private fun draw(gc: GraphicsContext, frameTime: FrameTime) {
+        val now = System.nanoTime()
+        val deltaRenderNs = now - lastRenderTime
+        lastRenderTime = now
+
         gc.fill = Color.BEIGE
         gc.fillRect(0.0, 0.0, gc.canvas.width, gc.canvas.height)
 
-        val grid = controller.gridModel.getGridCopy()
         gc.fill = Color.OLIVEDRAB
         gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+
+        val grid = controller.gridModel.getGridCopy()
         for (r in 0 until rows) {
             for (c in 0 until cols) {
                 val fruit = grid[r][c]
                 val x = c * cellSize
                 val y = r * cellSize
-                gc.fillText(fruit.emoji, x + 4, y + cellSize * 0.8)
+                gc.drawImage(fruitImages[fruit], x, y)
             }
         }
 
@@ -439,6 +481,9 @@ class MonkeySortSimulatorApp : Application() {
         gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
         gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
         gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+
+        val fps = (1_000_000_000.0 / deltaRenderNs).roundToInt()
+        gc.fillText("FPS: $fps", 400.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
 
         sortStrip.draw(gc, controller.gridModel)
 
@@ -462,6 +507,6 @@ class MonkeySortSimulatorApp : Application() {
     }
 }
 
-fun main() {
-    Application.launch(MonkeySortSimulatorApp::class.java)
+fun main(args: Array<String>) {
+    Application.launch(MonkeySortSimulatorApp::class.java, *args)
 }
