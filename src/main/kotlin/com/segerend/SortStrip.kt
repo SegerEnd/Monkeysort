@@ -70,10 +70,10 @@ class SortStrip {
             gc.fillText(fruit.emoji, textX, textY)
 
             if (maxCount == neighborCount) {
-                gc.stroke = Color.BLACK
+                gc.fill = Color.LIMEGREEN
+                gc.stroke = Color.LIMEGREEN
                 gc.lineWidth = 2.0
                 gc.strokeRect(x, y, squareWidth, squareHeight)
-                gc.fill = Color.LIMEGREEN
                 gc.fillText("✅", x + squareWidth - 20, y + squareHeight - 5)
             }
         }

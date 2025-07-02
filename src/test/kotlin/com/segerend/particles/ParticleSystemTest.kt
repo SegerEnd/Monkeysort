@@ -14,19 +14,6 @@ class MockParticleEffect(
     // No-op for testing
 }
 
-class MockParticle(
-    private val lifetime: Long = 1000L
-) : Particle {
-    private var age = 0L
-    override fun update(deltaMs: Long) {
-        age += deltaMs
-    }
-    override val isAlive: Boolean get() = age < lifetime
-    override fun render(gc: GraphicsContext, cellSize: Double) {
-        // No-op
-    }
-}
-
 class ParticleSystemTest {
     private lateinit var particleSystem: ParticleSystem
 

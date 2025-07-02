@@ -375,7 +375,7 @@ class MonkeySortSimulatorApp : Application() {
     }
 
     override fun start(primaryStage: Stage) {
-        val canvas = Canvas(cols * cellSize, rows * cellSize + 30)
+        val canvas = Canvas(cols * cellSize, rows * cellSize + GameConfig.STRIP_HEIGHT + 30)
         val gc = canvas.graphicsContext2D
 
         root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugSuperSpeedButton, chartButton)
@@ -403,12 +403,13 @@ class MonkeySortSimulatorApp : Application() {
 
                     val frameTime = FrameTime(deltaMs, now / 1_000_000_000.0)
                     controller.tick(frameTime)
-                    draw(gc, frameTime)
 
                     if (controller.gridModel.isSorted()) {
                         GameStats.timeFactor = 1.0
                         controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
                     }
+
+                    draw(gc, frameTime)
                 }
             }
         }.start()
@@ -435,9 +436,9 @@ class MonkeySortSimulatorApp : Application() {
 
         gc.fill = Color.DARKGREEN
         gc.font = Utils.emojiCompatibleFont(16.0)
-        gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 5)
-        gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 5)
-        gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 5)
+        gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+        gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+        gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
 
         sortStrip.draw(gc, controller.gridModel)
 
