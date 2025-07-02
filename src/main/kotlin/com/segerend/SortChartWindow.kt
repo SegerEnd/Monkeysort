@@ -10,7 +10,6 @@ import javafx.scene.control.Button
 import javafx.geometry.Pos
 import javafx.scene.layout.HBox
 import javafx.geometry.Insets
-
 import kotlin.concurrent.fixedRateTimer
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -20,7 +19,6 @@ class SortChartWindow internal constructor(private val controller: GameControlle
     val root = BorderPane()
 
     init {
-        // Setup your chart window as before
         val xAxis = CategoryAxis()
         val yAxis = NumberAxis()
         val series = XYChart.Series<String, Number>()
@@ -67,19 +65,39 @@ class SortChartWindow internal constructor(private val controller: GameControlle
             .filter { it != Fruit.EMPTY }
             .sortedBy { it.name }
 
-        Platform.runLater {
-            val grid = controller.gridModel.getGridCopy()
-            val flatList = grid.flatten()
+        val grid = controller.gridModel.getGridCopy()
+        val flatList = grid.flatten()
 
-            series.data.clear()
+        val BATCH_SIZE = 250
 
-            flatList.forEachIndexed { index, fruit ->
-                val rank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
-                val data = XYChart.Data<String, Number>(index.toString(), rank)
-                series.data.add(data)
+        // Load first batch quickly
+        Thread {
+            val initialData: List<XYChart.Data<String, Number>> =
+                flatList.take(BATCH_SIZE).mapIndexed { index, fruit ->
+                    val rank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
+                    XYChart.Data(index.toString(), rank)
+                }
+
+            Platform.runLater {
+                series.data.setAll(initialData)
             }
-        }
 
+            // Load remaining data in small chunks
+            val remainingData = flatList.drop(BATCH_SIZE).mapIndexed { i, fruit ->
+                val index = i + BATCH_SIZE
+                val rank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
+                XYChart.Data(index.toString(), rank)
+            }
+
+            remainingData.chunked(10).forEach { chunk ->
+                Thread.sleep(50)
+                Platform.runLater {
+                    series.data.addAll(chunk as Collection<XYChart.Data<String, Number>>)
+                }
+            }
+        }.start()
+
+        // Periodic chart updates (for sorting changes)
         fixedRateTimer("chart-updater", daemon = true, initialDelay = 500, period = 100) {
             val newGrid = controller.gridModel.getGridCopy().flatten()
 
@@ -90,8 +108,10 @@ class SortChartWindow internal constructor(private val controller: GameControlle
                         val targetRank = if (fruit != Fruit.EMPTY) allFruitsSorted.indexOf(fruit).toDouble() else 0.0
                         data.yValue = targetRank
 
-                        // Update the bar color on update
-                        data.node?.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
+                        // Optional: apply color styling lazily
+                        data.node?.let { node ->
+                            node.style = "-fx-bar-fill: ${fruit.color.toRgbString()};"
+                        }
                     }
                 }
             }

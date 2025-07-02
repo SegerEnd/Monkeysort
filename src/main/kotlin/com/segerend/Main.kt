@@ -71,6 +71,14 @@ class GridModel(val rows: Int = GameConfig.ROWS, val cols: Int = GameConfig.COLS
     fun get(pos: Pos): Fruit = grid[pos.row][pos.col]
     fun set(pos: Pos, fruit: Fruit) { grid[pos.row][pos.col] = fruit }
 
+//    fun sortedPercentage(): Double {
+//        val flat = grid.flatten()
+//        val totalPairs = flat.size - 1
+//        if (totalPairs <= 0) return 100.0
+//        val sortedPairs = flat.zipWithNext().count { it.first.name <= it.second.name }
+//        return (sortedPairs.toDouble() / totalPairs) * 100.0
+//    }
+
     fun fill(fruit: Fruit) {
         for (r in 0 until rows) {
             for (c in 0 until cols) {
@@ -243,9 +251,8 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         val deltaMs = frameTime.deltaMs * GameStats.timeFactor
 //        val deltaMs = frameTime.deltaMs
 
-        // Convert to seconds for normalized delta
-        val delta = deltaMs / 1000.0 * GameStats.timeFactor
-//        val delta = deltaMs / 1000.0
+        // Convert for normalized delta use frameTime.currentTimeSec
+        val delta = frameTime.deltaMs / 1000.0 * GameStats.timeFactor
 
         for (monkey in monkeys) {
             if (monkey.isIdle()) {
