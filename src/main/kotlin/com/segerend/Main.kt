@@ -33,7 +33,6 @@ class MonkeySortSimulatorApp : Application() {
         Fruit.values().associateWith { fruit ->
 //            val emojiSize : Double = (cellSize * 1.5).toInt().toDouble()
             val emojiSize = 32.0
-            println("Generating image for fruit: ${fruit.name} with size $emojiSize")
             val canvas = Canvas(emojiSize, emojiSize)
             val gc = canvas.graphicsContext2D
 
