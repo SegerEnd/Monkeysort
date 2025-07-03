@@ -102,6 +102,12 @@ class DebugButtonsTest : ApplicationTest() {
 
         clickButton("#debugSuperSpeedButton")
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the super speed button again")
+
+        // test #pauseButton to toggle between 0.0 and 1.0 timeFactor
+        clickButton("#pauseButton")
+        assertEquals(0.0, GameStats.timeFactor, "Game speed should be paused (0.0) after clicking the pause button")
+        clickButton("#pauseButton")
+        assertEquals(1.0, GameStats.timeFactor, "Game speed should be resumed (1.0) after clicking the pause button again")
     }
 
     @AfterEach
