@@ -31,21 +31,24 @@ class MonkeySortSimulatorApp : Application() {
 
     private val fruitImages: Map<Fruit, Image> by lazy {
         Fruit.values().associateWith { fruit ->
-            val canvas = Canvas(cellSize, cellSize)
+//            val emojiSize : Double = (cellSize * 1.5).toInt().toDouble()
+            val emojiSize = 32.0
+            println("Generating image for fruit: ${fruit.name} with size $emojiSize")
+            val canvas = Canvas(emojiSize, emojiSize)
             val gc = canvas.graphicsContext2D
 
-            gc.clearRect(0.0, 0.0, cellSize, cellSize)
+            gc.clearRect(0.0, 0.0, emojiSize, emojiSize)
 
             if (fruit != Fruit.EMPTY) {
                 gc.fill = Color.OLIVEDRAB
-                gc.font = Utils.emojiCompatibleFont(cellSize * 0.75)
+                gc.font = Utils.emojiCompatibleFont(emojiSize * 0.9)
 
                 // Align center both horizontally and vertically
                 gc.textAlign = TextAlignment.CENTER
                 gc.textBaseline = VPos.CENTER
 
-                val centerX = cellSize / 2
-                val centerY = cellSize / 2
+                val centerX = emojiSize / 2
+                val centerY = emojiSize / 2
 
                 gc.fillText(fruit.emoji, centerX, centerY)
             }
@@ -54,7 +57,7 @@ class MonkeySortSimulatorApp : Application() {
                 fill = Color.TRANSPARENT
             }
 
-            canvas.snapshot(params, WritableImage(cellSize.toInt(), cellSize.toInt()))
+            canvas.snapshot(params, WritableImage(emojiSize.toInt(), emojiSize.toInt()))
         }
     }
 
@@ -167,6 +170,15 @@ class MonkeySortSimulatorApp : Application() {
 
         primaryStage.show()
 
+        primaryStage.minWidth = primaryStage.width
+        primaryStage.minHeight = primaryStage.height
+
+        // Maybe for later, if we want to resize the canvas with the window
+//        primaryStage.widthProperty().addListener { _, _, newWidth ->
+//            canvas.width = newWidth.toDouble()
+//            canvas.height = (rows * cellSize + GameConfig.STRIP_HEIGHT + 30).toDouble()
+//        }
+
         object : AnimationTimer() {
             private var lastUpdate = System.nanoTime()
             private var lastRender = System.nanoTime()
@@ -228,7 +240,7 @@ class MonkeySortSimulatorApp : Application() {
                 val fruit = grid[r][c]
                 val x = c * cellSize
                 val y = r * cellSize
-                gc.drawImage(fruitImages[fruit], x, y)
+                gc.drawImage(fruitImages[fruit], x, y, cellSize, cellSize)
 //                gc.fillText(fruit.emoji, x + 2, y + cellSize * 0.55)
             }
         }

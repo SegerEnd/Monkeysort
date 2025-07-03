@@ -6,6 +6,8 @@ import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.stage.Stage
 import javafx.embed.swing.SwingFXUtils
+import javafx.scene.SnapshotParameters
+import javafx.scene.image.WritableImage
 import javax.imageio.ImageIO
 import java.io.File
 
@@ -27,7 +29,7 @@ class EmojiSpriteSheetGenerator : Application() {
 
         val cols = 4
         val rows = (fruitEmojis.size + cols - 1) / cols
-        val emojiSize = 64.0
+        val emojiSize = 128.0
 
         val canvasWidth = cols * emojiSize
         val canvasHeight = rows * emojiSize
@@ -36,7 +38,7 @@ class EmojiSpriteSheetGenerator : Application() {
         val gc = canvas.graphicsContext2D
 
         // Background
-        gc.fill = Color.WHITE
+        gc.fill = Color.TRANSPARENT
         gc.fillRect(0.0, 0.0, canvasWidth, canvasHeight)
 
         gc.fill = Color.BLACK
@@ -51,7 +53,10 @@ class EmojiSpriteSheetGenerator : Application() {
             gc.fillText(emoji, x, y)
         }
 
-        val writableImage = canvas.snapshot(null, null)
+        val params = SnapshotParameters().apply {
+            fill = Color.TRANSPARENT
+        }
+        val writableImage = canvas.snapshot(params, null)
         val outputFile = File("src/main/resources/spritesheet.png")
         ImageIO.write(SwingFXUtils.fromFXImage(writableImage, null), "png", outputFile)
         println("Saved sprite sheet as: ${outputFile.absolutePath}")

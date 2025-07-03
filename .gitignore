@@ -5,6 +5,9 @@ build/
 !**/src/test/**/build/
 *.hprof
 
+### Monkeysort ###
+spritesheet.png
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
