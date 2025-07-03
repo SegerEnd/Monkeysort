@@ -98,7 +98,7 @@ class DebugButtonsTest : ApplicationTest() {
 
         // Super speed button
         clickButton("#debugSuperSpeedButton")
-        assertEquals(1_000_000.0, GameStats.timeFactor, "Game speed should be set to super speed after clicking the button")
+        assertEquals(100.0, GameStats.timeFactor, "Game speed should be set to super speed after clicking the button")
 
         clickButton("#debugSuperSpeedButton")
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the super speed button again")

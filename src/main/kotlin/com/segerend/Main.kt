@@ -65,7 +65,7 @@ class MonkeySortSimulatorApp : Application() {
         setOnAction { if (!controller.buyMonkey()) println("Not enough coins!") }
     }
 
-    private val upgradeButton = Button("Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)").apply {
+    private val upgradeButton = Button("🫧 Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)").apply {
         id = "upgradeButton"
         setOnAction { if (!controller.upgradeMonkey()) println("Not enough coins or no monkeys to upgrade!") }
     }
@@ -110,15 +110,15 @@ class MonkeySortSimulatorApp : Application() {
         }
     }
 
-    private val debugSuperSpeedButton = Button("Debug: Super Speed x1000000").apply {
+    private val debugSuperSpeedButton = Button("Debug: Super Speed x100").apply {
         id = "debugSuperSpeedButton"
         setOnAction {
-            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 1000000.0 else 1.0
+            GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100.0 else 1.0
             println("Game speed toggled to x${GameStats.timeFactor}")
         }
     }
 
-    private val chartButton = Button("Show Sort Chart").apply {
+    private val chartButton = Button("🗺️ Show Sort Chart").apply {
         id = "chartButton"
         setOnAction {
             SortChartWindow.show(controller)
@@ -128,7 +128,13 @@ class MonkeySortSimulatorApp : Application() {
     private val pauseButton = Button("Pause").apply {
         id = "pauseButton"
         setOnAction {
-            GameStats.timeFactor = if (GameStats.timeFactor == 0.0) 1.0 else 0.0
+            if (GameStats.timeFactor == 0.0) {
+                text = "Pause"
+                GameStats.timeFactor = 1.0
+            } else {
+                text = "Resume"
+                GameStats.timeFactor = 0.0
+            }
         }
     }
 
@@ -169,6 +175,16 @@ class MonkeySortSimulatorApp : Application() {
 
         primaryStage.show()
 
+        var isMinimizedOrHidden = false
+
+        primaryStage.iconifiedProperty().addListener { _, _, minimized ->
+            isMinimizedOrHidden = minimized
+        }
+
+        primaryStage.showingProperty().addListener { _, _, showing ->
+            isMinimizedOrHidden = !showing
+        }
+
         primaryStage.minWidth = primaryStage.width
         primaryStage.minHeight = primaryStage.height
 
@@ -189,30 +205,29 @@ class MonkeySortSimulatorApp : Application() {
             private var accumulator = 0L
 
             override fun handle(now: Long) {
-                if (GameStats.timeFactor == 0.0 || GameConfig.fps == 0) {
-                    // If paused, skip update and render
-                    return
-                }
-                else if (targetFPS != GameConfig.fps) {
-                    // Update target FPS if it has changed
-                    targetFPS = GameConfig.fps
+                // Adjust FPS based on window state
+                val desiredFPS = if (isMinimizedOrHidden) 1 else GameConfig.fps
+
+                if (targetFPS != desiredFPS) {
+                    targetFPS = desiredFPS
                     nsPerUpdate = 1_000_000_000L / targetFPS
+                }
+
+                if (GameStats.timeFactor == 0.0 || targetFPS == 0) {
+                    return
                 }
 
                 val delta = now - lastUpdate
                 lastUpdate = now
                 accumulator += delta
 
-                // Fixed timestep updates (catch up if lagging)
                 while (accumulator >= nsPerUpdate) {
                     val deltaTimeSeconds = nsPerUpdate / 1_000_000_000.0
                     controller.tick(FrameTime(deltaTimeSeconds * 1000, now / 1_000_000_000.0))
                     accumulator -= nsPerUpdate
                 }
 
-                // Cap rendering to fps
                 if (now - lastRender >= nsPerUpdate) {
-                    // Optionally pass interpolation factor: accumulator / nsPerUpdate * 1000
                     draw(gc, FrameTime(accumulator / 1_000_000.0, now / 1_000_000_000.0))
                     lastRender = now
                 }
@@ -256,10 +271,12 @@ class MonkeySortSimulatorApp : Application() {
         val fps = (1_000_000_000.0 / deltaRenderNs).roundToInt()
         gc.fillText("FPS: $fps", 400.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
 
+        gc.fillText("Speed: x${GameStats.timeFactor}", 475.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+
         sortStrip.draw(gc, controller.gridModel)
 
         buyButton.isDisable = GameStats.coins < controller.getNewMonkeyPrice()
-        buyButton.text = "Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
+        buyButton.text = "${GameConfig.DEFAULT_MONKEY} Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
         upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.none { it.algorithm == SortAlgorithm.BOGO }
 
         if (controller.gridModel.isSorted()) {
