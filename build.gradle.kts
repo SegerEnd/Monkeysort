@@ -1,5 +1,3 @@
-import java.awt.Desktop
-
 plugins {
     kotlin("jvm") version "2.1.20"
     id("org.openjfx.javafxplugin") version "0.0.13"
@@ -174,6 +172,11 @@ tasks.register<Exec>("runApp") {
             osName.contains("mac") -> {
                 val appPath = File(jpackageOutput, "$appName.app")
                 if (!appPath.exists()) throw GradleException("App bundle not found at $appPath")
+                exec {
+                    commandLine("osascript", "-e", "tell application \"$appName\" to quit")
+                    isIgnoreExitValue = true // avoid task failure if app is not running
+                }
+                Thread.sleep(1500)
                 listOf("open", appPath.absolutePath)
             }
             osName.contains("windows") -> {
@@ -184,6 +187,33 @@ tasks.register<Exec>("runApp") {
             else -> throw GradleException("Unsupported OS for runApp task")
         }
         commandLine(command)
+    }
+}
+
+tasks.register<Copy>("installAppToApplications") {
+    group = "distribution"
+    description = "Installs the .app bundle for MacOS to /Applications"
+
+    if (!System.getProperty("os.name").lowercase().contains("mac")) {
+        throw GradleException("This task is only supported on macOS")
+    }
+
+    doNotTrackState("installAppToApplications")
+    dependsOn("packageApp")
+
+    val jpackageOutput = File(layout.buildDirectory.get().asFile, "dist")
+    val appBundle = File(jpackageOutput, "$appName.app")
+    if (!appBundle.exists()) {
+        throw GradleException("App bundle not found at $appBundle")
+    }
+
+    from(appBundle) {
+        into(appBundle.name)
+    }
+    into("/Applications")
+
+    doLast {
+        println("✅ App bundle installed to /Applications")
     }
 }
 

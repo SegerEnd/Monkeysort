@@ -41,7 +41,6 @@ class SortStrip {
             }
 
             val centerColor = blendColors(Color.WHITE, fruit.color, grayScaleFactor)
-            // edge color is a little bit more saturated than the center color
             val edgeColor = blendColors(Color.gray(0.8), fruit.color, grayScaleFactor * 0.8)
 
             val gradient = RadialGradient(

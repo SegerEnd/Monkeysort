@@ -13,6 +13,7 @@ import javafx.scene.control.Button
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import javafx.scene.layout.BorderPane
+import javafx.scene.layout.FlowPane
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
 import javafx.scene.text.TextAlignment
@@ -139,7 +140,20 @@ class MonkeySortSimulatorApp : Application() {
         val canvas = Canvas(cols * cellSize, rows * cellSize + GameConfig.STRIP_HEIGHT + 30)
         val gc = canvas.graphicsContext2D
 
-        root.bottom = HBox(10.0, buyButton, upgradeButton, debugBogoButton, debugBubbleButton, debugInsertionButton, debugSpawnButton, debugSpeedButton, debugSuperSpeedButton, chartButton, pauseButton)
+        root.bottom = FlowPane().apply {
+            children.addAll(
+                buyButton,
+                upgradeButton,
+                debugBogoButton,
+                debugBubbleButton,
+                debugInsertionButton,
+                debugSpawnButton,
+                debugSpeedButton,
+                debugSuperSpeedButton,
+                chartButton,
+                pauseButton
+            )
+        }
         root.center = canvas
 
         val scene = Scene(root)
@@ -158,10 +172,8 @@ class MonkeySortSimulatorApp : Application() {
             private var lastRender = System.nanoTime()
 
             private var targetFPS = GameConfig.fps
-            private val maxFPS = GameConfig.MAX_FPS
 
             private var nsPerUpdate = 1_000_000_000L / targetFPS
-            private val nsPerRender = 1_000_000_000L / maxFPS
 
             private var accumulator = 0L
 
