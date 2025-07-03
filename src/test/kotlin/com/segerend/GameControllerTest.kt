@@ -1,5 +1,7 @@
 package com.segerend
 
+import com.segerend.monkey.*
+import com.segerend.sorting.SortAlgorithm
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

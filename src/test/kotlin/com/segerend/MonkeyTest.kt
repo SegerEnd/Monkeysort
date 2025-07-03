@@ -1,12 +1,14 @@
 package com.segerend
 
 import com.segerend.monkey.IdleState
+import com.segerend.monkey.Monkey
 import com.segerend.monkey.MovingToSourceState
+import com.segerend.monkey.ShuffleTask
 import com.segerend.particles.ParticleSystem
 import com.segerend.sorting.BogoSortStrategy
 import com.segerend.sorting.BubbleSortStrategy
+import com.segerend.sorting.SortAlgorithm
 import javafx.scene.canvas.Canvas
-import javafx.scene.paint.Color
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

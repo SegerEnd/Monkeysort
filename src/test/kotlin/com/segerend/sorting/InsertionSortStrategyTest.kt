@@ -5,10 +5,9 @@ import com.segerend.GameConfig
 import com.segerend.GameStats
 import com.segerend.GridModel
 import com.segerend.LockManager
-import com.segerend.Monkey
 import com.segerend.Pos
-import com.segerend.ShuffleTask
-import com.segerend.SortAlgorithm
+import com.segerend.monkey.Monkey
+import com.segerend.monkey.ShuffleTask
 import com.segerend.particles.ParticleSystem
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach

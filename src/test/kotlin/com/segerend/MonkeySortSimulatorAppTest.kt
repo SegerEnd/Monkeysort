@@ -1,6 +1,7 @@
 package com.segerend
 
-import com.segerend.monkey.IdleState
+import com.segerend.monkey.*
+import com.segerend.sorting.SortAlgorithm
 import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.stage.Stage
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.fail
 import org.testfx.api.FxToolkit
 import org.testfx.framework.junit5.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
