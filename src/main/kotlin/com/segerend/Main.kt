@@ -419,15 +419,25 @@ class MonkeySortSimulatorApp : Application() {
             private var lastUpdate = System.nanoTime()
             private var lastRender = System.nanoTime()
 
-            private val targetFPS = GameConfig.fps
+            private var targetFPS = GameConfig.fps
             private val maxFPS = GameConfig.MAX_FPS
 
-            private val nsPerUpdate = 1_000_000_000L / targetFPS
+            private var nsPerUpdate = 1_000_000_000L / targetFPS
             private val nsPerRender = 1_000_000_000L / maxFPS
 
             private var accumulator = 0L
 
             override fun handle(now: Long) {
+                if (GameStats.timeFactor == 0.0 || GameConfig.fps == 0) {
+                    // If paused, skip update and render
+                    return
+                }
+                else if (targetFPS != GameConfig.fps) {
+                    // Update target FPS if it has changed
+                    targetFPS = GameConfig.fps
+                    nsPerUpdate = 1_000_000_000L / targetFPS
+                }
+
                 val delta = now - lastUpdate
                 lastUpdate = now
                 accumulator += delta
@@ -439,8 +449,8 @@ class MonkeySortSimulatorApp : Application() {
                     accumulator -= nsPerUpdate
                 }
 
-                // Cap rendering to MAX_FPS
-                if (now - lastRender >= nsPerRender) {
+                // Cap rendering to fps
+                if (now - lastRender >= nsPerUpdate) {
                     // Optionally pass interpolation factor: accumulator / nsPerUpdate * 1000
                     draw(gc, FrameTime(accumulator / 1_000_000.0, now / 1_000_000_000.0))
                     lastRender = now
@@ -469,6 +479,7 @@ class MonkeySortSimulatorApp : Application() {
                 val x = c * cellSize
                 val y = r * cellSize
                 gc.drawImage(fruitImages[fruit], x, y)
+//                gc.fillText(fruit.emoji, x + 2, y + cellSize * 0.55)
             }
         }
 
@@ -502,6 +513,12 @@ class MonkeySortSimulatorApp : Application() {
             val y = (gc.canvas.height - height) / 2 - 20 + offsetY
 
             gc.drawImage(img, x, y, width, height)
+
+            GameStats.timeFactor = 0.1
+            GameConfig.fps = 24
+        } else if (GameConfig.fps != GameConfig.MAX_FPS) {
+            GameConfig.fps = GameConfig.MAX_FPS // Reset to max FPS when not sorted
+            GameStats.timeFactor = 1.0 // Reset time factor to normal speed
         }
     }
 }
