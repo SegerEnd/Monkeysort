@@ -5,12 +5,8 @@ import com.segerend.GameConfig
 import com.segerend.GameStats
 import com.segerend.GridModel
 import com.segerend.LockManager
-import com.segerend.Monkey
-import com.segerend.ShuffleTask
-import com.segerend.Utils
 import com.segerend.particles.*
 import javafx.scene.canvas.GraphicsContext
-import javafx.scene.paint.Color
 import kotlin.random.Random
 
 // --- Monkey States ---

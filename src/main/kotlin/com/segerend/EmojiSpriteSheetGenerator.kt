@@ -1,9 +1,7 @@
 import com.segerend.Fruit
 import com.segerend.GameConfig
 import javafx.application.Application
-import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
-import javafx.scene.canvas.GraphicsContext
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.stage.Stage
@@ -17,19 +15,14 @@ class EmojiSpriteSheetGenerator : Application() {
         val sortedFruits = allFruits.sortedBy { it.name.lowercase() }
         val monkeyEmoji = if (GameConfig.DEFAULT_MONKEY.isNotEmpty()) GameConfig.DEFAULT_MONKEY else "🐒"
 
-        // Create a special Fruit-like wrapper for monkey emoji
-        // Or simply prepend a pair of (name, emoji) to the list
-
-        // Let's create a list of pairs (name, emoji) to handle monkey first
         val fruitEmojis = mutableListOf<Pair<String, String>>()
 
-        // Insert monkey emoji first
+        // Insert monkey emoji at first
         fruitEmojis.add("Monkey" to monkeyEmoji)
 
-        // Add the fruits after, sorted
+        // Add the fruits after, sorted alphabetically
         sortedFruits.forEach { fruit ->
-            val emoji = fruit.emoji ?: monkeyEmoji
-            fruitEmojis.add(fruit.name to emoji)
+            fruitEmojis.add(fruit.name to fruit.emoji)
         }
 
         val cols = 4

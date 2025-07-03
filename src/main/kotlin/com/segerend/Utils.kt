@@ -9,6 +9,8 @@ object Utils {
     }
 }
 
+data class FrameTime(val deltaMs: Double, val currentTimeSec: Double)
+
 // Extension to convert Color to CSS rgb string
 fun Color.toRgbString(): String {
     val r = (this.red * 255).toInt()

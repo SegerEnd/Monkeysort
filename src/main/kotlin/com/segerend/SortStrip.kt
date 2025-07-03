@@ -4,7 +4,6 @@ import javafx.scene.canvas.GraphicsContext
 import javafx.scene.paint.Color
 import javafx.scene.paint.CycleMethod
 import javafx.scene.paint.RadialGradient
-import javafx.scene.text.Font
 
 class SortStrip {
     fun draw(gc: GraphicsContext, grid: GridModel) {

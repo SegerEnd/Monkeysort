@@ -3,7 +3,7 @@ package com.segerend.sorting
 import com.segerend.Fruit
 import com.segerend.GridModel
 import com.segerend.Pos
-import com.segerend.ShuffleTask
+import com.segerend.monkey.ShuffleTask
 import kotlin.random.Random
 
 // --- Sorting Strategies ---
@@ -64,13 +64,13 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
                 compareIndex--
                 return ShuffleTask(posA, posB, fruitA)
             } else {
-                // If no swap needed, move forward in the main loop
+                // If no swap needed, move to the next element
                 currentIndex++
                 compareIndex = currentIndex
                 return null
             }
         } else {
-            // Reached the start, move forward
+            // If we are at the start of a new row, reset compareIndex
             currentIndex++
             compareIndex = currentIndex
             return null

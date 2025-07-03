@@ -2,8 +2,9 @@ package com.segerend.sorting
 
 import com.segerend.GameConfig
 import com.segerend.GridModel
-import com.segerend.ShuffleTask
-import com.segerend.SortAlgorithm
+import com.segerend.monkey.ShuffleTask
+
+enum class SortAlgorithm { BOGO, BUBBLE, INSERTION }
 
 interface SortStrategy {
     fun getNextTask(grid: GridModel): ShuffleTask?
