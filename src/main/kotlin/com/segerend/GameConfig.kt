@@ -5,10 +5,13 @@ object GameConfig {
     var COLS = 25
     const val CELL_SIZE = 24.0
     const val MONKEY_BASE_COST = 75
+    const val MAX_MONKEYS = 150
     const val MONKEY_COST_INCREASE_FACTOR = 1.3 // 30% increase per monkey
     const val MONKEY_UPGRADE_COST = 500
     const val MONKEY_WANDER_RADIUS_FACTOR = 4.0
     const val COMBO_REWARD_MULTIPLIER = 15
+
+
 
     const val MAX_FPS = 60
     var fps = MAX_FPS

@@ -1,9 +1,15 @@
-package com.segerend
+package com.segerend.ui
 
+import com.segerend.Fruit
+import com.segerend.GameConfig
+import com.segerend.GridModel
+import com.segerend.Utils
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.paint.Color
 import javafx.scene.paint.CycleMethod
 import javafx.scene.paint.RadialGradient
+import javafx.scene.paint.Stop
+import javafx.scene.text.Text
 
 class SortStrip {
     fun draw(gc: GraphicsContext, grid: GridModel) {
@@ -48,15 +54,15 @@ class SortStrip {
                 x + squareWidth / 2, y + squareHeight / 2,
                 squareWidth / 1.5,
                 false, CycleMethod.NO_CYCLE,
-                javafx.scene.paint.Stop(0.0, centerColor),
-                javafx.scene.paint.Stop(1.0, edgeColor)
+                Stop(0.0, centerColor),
+                Stop(1.0, edgeColor)
             )
 
             gc.fill = gradient
             gc.fillRect(x, y, squareWidth, squareHeight)
 
             // Use Text node to measure emoji width
-            val emojiText = javafx.scene.text.Text(fruit.emoji)
+            val emojiText = Text(fruit.emoji)
             emojiText.font = gc.font
             val textWidth = emojiText.layoutBounds.width
             val textHeight = emojiText.layoutBounds.height

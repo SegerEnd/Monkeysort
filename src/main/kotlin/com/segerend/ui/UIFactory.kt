@@ -1,0 +1,86 @@
+package com.segerend.ui
+
+import com.segerend.*
+import com.segerend.sorting.SortAlgorithm
+import javafx.scene.control.Button
+import javafx.scene.layout.FlowPane
+
+object UIFactory {
+    lateinit var buyButton: Button
+    lateinit var upgradeButton: Button
+
+    fun createButtonPanel(controller: GameController): FlowPane {
+        buyButton = Button()
+        upgradeButton = Button()
+        val pauseButton = Button("Pause")
+
+        return FlowPane().apply {
+            children.addAll(
+                buyButton.apply {
+                    id = "buyButton"
+                    text = "${GameConfig.DEFAULT_MONKEY} Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
+                    setOnAction {
+                        controller.buyMonkey()
+                    }
+                },
+                upgradeButton.apply {
+                    id = "upgradeButton"
+                    text = "🫧 Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)"
+                    setOnAction {
+                        controller.upgradeMonkey()
+                    }
+                },
+                button("Debug: BogoSort all", id = "debugBogoButton") {
+                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
+                },
+                button("Debug: BubbleSort all", id = "debugBubbleButton") {
+                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+                },
+                button("Debug: InsertionSort all", id = "debugInsertionButton") {
+                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.INSERTION }
+                },
+                button("Debug: Spawn 5 Monkeys", id = "debugSpawn5MonkeysButton") {
+                    repeat(5) {
+                        controller.monkeys.add(com.segerend.monkey.Monkey(SortAlgorithm.BOGO))
+                    }
+                },
+                button("Debug: Speed x5", id = "debugSpeedx5Button") {
+                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 5.0 else 1.0
+                },
+                button("Debug: Super Speed x100", id = "debugSuperSpeedButton") {
+                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100.0 else 1.0
+                },
+                button("🗺️ Show Sort Chart", id = "chartButton") {
+                    SortChartWindow.show(controller)
+                },
+                pauseButton.apply {
+                    id = "pauseButton"
+                    setOnAction {
+                        if (GameStats.timeFactor == 0.0) {
+                            text = "Pause"
+                            GameStats.timeFactor = 1.0
+                        } else {
+                            text = "Resume"
+                            GameStats.timeFactor = 0.0
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    fun updateButtons(controller: GameController) {
+        buyButton.text = "${GameConfig.DEFAULT_MONKEY} Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
+        buyButton.isDisable = GameStats.coins < controller.getNewMonkeyPrice() || controller.monkeys.size >= GameConfig.MAX_MONKEYS
+
+        upgradeButton.text = "🫧 Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)"
+        upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.isEmpty()
+    }
+
+    private fun button(text: String, id: String? = null, onClick: (Button) -> Unit): Button {
+        return Button(text).apply {
+            if (id != null) this.id = id
+            setOnAction { onClick(this) }
+        }
+    }
+}

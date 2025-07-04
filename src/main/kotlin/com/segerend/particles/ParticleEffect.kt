@@ -119,14 +119,7 @@ class ComboParticleEffect(
             val baseX = cell.col * cellSize + cellSize / 2
             val baseY = cell.row * cellSize + cellSize / 2
 
-            // Scale particle count inversely with game speed (higher speed -> fewer particles)
-            // and directly with combo size (larger combo -> more particles)
-            val speedFactor = (15.0 / GameStats.timeFactor).coerceAtMost(15.0)
-            val comboFactor = comboCells.size / 10.0
-            val rawCount = speedFactor * comboFactor
-
-            // Clamp the particle count between 2 and 12
-            val particleCount = rawCount.toInt().coerceIn(2, 12)
+            val particleCount = 10
 
             repeat(particleCount) {
                 particles += createParticle(baseX, baseY)
