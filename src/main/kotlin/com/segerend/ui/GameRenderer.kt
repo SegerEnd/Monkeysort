@@ -99,8 +99,8 @@ class GameRenderer(
     private fun drawStats(deltaRenderNs: Long) {
         gc.fill = Color.DARKGREEN
         gc.font = Utils.emojiCompatibleFont(16.0)
-        gc.fillText("Coins: ${GameStats.coins}", 10.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
-        gc.fillText("Monkeys: ${controller.monkeys.size}", 120.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+        gc.fillText("Coins: ${GameStats.coins.formatWithDots()}", 10.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
+        gc.fillText("Monkeys: ${controller.monkeys.size}", 130.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
         gc.fillText("Bubble Monkeys: ${controller.monkeys.count { it.algorithm == SortAlgorithm.BUBBLE }}", 250.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)
         val fps = (1_000_000_000.0 / deltaRenderNs).roundToInt()
         gc.fillText("FPS: $fps", 400.0, gc.canvas.height - 10 - GameConfig.STRIP_HEIGHT)

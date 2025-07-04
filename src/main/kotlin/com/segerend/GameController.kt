@@ -1,5 +1,7 @@
 package com.segerend
 
+import com.segerend.monkey.ChattingState
+import com.segerend.monkey.DancingState
 import com.segerend.monkey.Monkey
 import com.segerend.monkey.ShuffleTask
 import com.segerend.particles.ParticleSystem
@@ -28,14 +30,14 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     }
 
     fun getNewMonkeyPrice(): Int {
-        return (GameConfig.MONKEY_BASE_COST * Math.pow(GameConfig.MONKEY_COST_INCREASE_FACTOR, monkeys.size.toDouble())).toInt()
+        return (GameConfig.MONKEY_BASE_COST * GameConfig.MONKEY_COST_INCREASE_FACTOR.pow(monkeys.size.toDouble())).toInt()
     }
 
     fun getUpgradeAllFee(startFee: Int, algorithm: SortAlgorithm) : Int {
         var algorithmMonkeys = monkeys.count { it.algorithm == algorithm }
         var otherMonkeys = monkeys.size - algorithmMonkeys
-//        return (startFee * (1 + 0.25 * otherMonkeys + 0.1 * algorithmMonkeys)).toInt()
-        return (startFee * 1.1.pow(otherMonkeys.toDouble()) * Math.pow(1.1, algorithmMonkeys.toDouble())).toInt()
+        return (startFee * 1.1.pow(otherMonkeys.toDouble()) * Math.pow(1.1, algorithmMonkeys.toDouble()) /
+                if (algorithmMonkeys == 0) 2 else 1).toInt()
     }
 
     fun buyMonkey(): Boolean {
@@ -48,17 +50,22 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         return false
     }
 
-    fun upgradeAllMonkeysToBubbleSort() {
-        val upgradeFee = getUpgradeAllFee(
-            GameConfig.BUBBLE_SORT_ALL_START_FEE,
-            SortAlgorithm.BUBBLE
-        )
+    private fun upgradeAllMonkeysTo(algorithm: SortAlgorithm, startFee: Int) {
+        val upgradeFee = getUpgradeAllFee(startFee, algorithm)
         if (GameStats.coins < upgradeFee) return
         GameStats.coins -= upgradeFee
         monkeys.forEach {
-            if (it.algorithm != SortAlgorithm.BUBBLE || it.isIdle()) {
-                it.algorithm = SortAlgorithm.BUBBLE
+            if (it.algorithm != algorithm || it.state is DancingState || it.state is ChattingState) {
+                it.algorithm = algorithm
             }
         }
+    }
+
+    fun upgradeAllMonkeysToBubbleSort() {
+        upgradeAllMonkeysTo(SortAlgorithm.BUBBLE, GameConfig.BUBBLE_SORT_ALL_START_FEE)
+    }
+
+    fun upgradeAllMonkeysToInsertionSort() {
+        upgradeAllMonkeysTo(SortAlgorithm.INSERTION, GameConfig.INSERTION_SORT_ALL_START_FEE)
     }
 }

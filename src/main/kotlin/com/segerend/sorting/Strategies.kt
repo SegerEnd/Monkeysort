@@ -44,35 +44,52 @@ class BubbleSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
 class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
     private var currentIndex = 1
     private var compareIndex = 1
+    private var justSwapped = false
 
     override fun getNextTask(grid: GridModel): ShuffleTask? {
         val totalCells = rows * cols
 
-        if (currentIndex >= totalCells) return null  // Sorting is done
+        // If we reach end, start over to keep sorting continuously
+        if (currentIndex >= totalCells) {
+            currentIndex = 1
+            compareIndex = currentIndex
+        }
+
+        // After returning a swap task, move back one to keep checking previous pairs
+        if (justSwapped) {
+            compareIndex--
+            justSwapped = false
+        }
+
+        // If compareIndex at start, move forward to next element to insert
+        if (compareIndex <= 0) {
+            currentIndex++
+            compareIndex = currentIndex
+            if (currentIndex >= totalCells) {
+                currentIndex = 1
+                compareIndex = currentIndex
+            }
+        }
 
         val indexA = compareIndex - 1
         val indexB = compareIndex
 
-        if (indexA >= 0) {
-            val posA = Pos(indexA / cols, indexA % cols)
-            val posB = Pos(indexB / cols, indexB % cols)
+        val posA = Pos(indexA / cols, indexA % cols)
+        val posB = Pos(indexB / cols, indexB % cols)
 
-            val fruitA = grid.get(posA)
-            val fruitB = grid.get(posB)
+        val fruitA = grid.get(posA)
+        val fruitB = grid.get(posB)
 
-            if (fruitA != Fruit.EMPTY && fruitB != Fruit.EMPTY && fruitA.name > fruitB.name) {
-                compareIndex--
-                return ShuffleTask(posA, posB, fruitA)
-            } else {
-                // If no swap needed, move to the next element
-                currentIndex++
-                compareIndex = currentIndex
-                return null
-            }
+        if (fruitA != Fruit.EMPTY && fruitB != Fruit.EMPTY && fruitA.name > fruitB.name) {
+            justSwapped = true
+            return ShuffleTask(posA, posB, fruitA)
         } else {
-            // If we are at the start of a new row, reset compareIndex
             currentIndex++
             compareIndex = currentIndex
+            if (currentIndex >= totalCells) {
+                currentIndex = 1
+                compareIndex = currentIndex
+            }
             return null
         }
     }
