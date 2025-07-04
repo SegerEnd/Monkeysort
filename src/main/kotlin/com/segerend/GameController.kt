@@ -4,6 +4,7 @@ import com.segerend.monkey.Monkey
 import com.segerend.monkey.ShuffleTask
 import com.segerend.particles.ParticleSystem
 import com.segerend.sorting.SortAlgorithm
+import kotlin.math.pow
 
 class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     var gridModel = GridModel(rows, cols)
@@ -27,13 +28,14 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
     }
 
     fun getNewMonkeyPrice(): Int {
-        return (GameConfig.MONKEY_BASE_COST * monkeys.size * GameConfig.MONKEY_COST_INCREASE_FACTOR).toInt()
+        return (GameConfig.MONKEY_BASE_COST * Math.pow(GameConfig.MONKEY_COST_INCREASE_FACTOR, monkeys.size.toDouble())).toInt()
     }
 
     fun getUpgradeAllFee(startFee: Int, algorithm: SortAlgorithm) : Int {
         var algorithmMonkeys = monkeys.count { it.algorithm == algorithm }
         var otherMonkeys = monkeys.size - algorithmMonkeys
-        return (startFee * (1 + 0.25 * otherMonkeys + 0.1 * algorithmMonkeys)).toInt()
+//        return (startFee * (1 + 0.25 * otherMonkeys + 0.1 * algorithmMonkeys)).toInt()
+        return (startFee * 1.1.pow(otherMonkeys.toDouble()) * Math.pow(1.1, algorithmMonkeys.toDouble())).toInt()
     }
 
     fun buyMonkey(): Boolean {
@@ -53,6 +55,10 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         )
         if (GameStats.coins < upgradeFee) return
         GameStats.coins -= upgradeFee
-        monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+        monkeys.forEach {
+            if (it.algorithm != SortAlgorithm.BUBBLE || it.isIdle()) {
+                it.algorithm = SortAlgorithm.BUBBLE
+            }
+        }
     }
 }

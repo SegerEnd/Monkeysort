@@ -1,10 +1,9 @@
 package com.segerend
 
 object GameStats {
-    var coins: Int = 50
+    var coins: Int = 75
 
-    // The speed at which the game runs, affecting all time-based calculations
-    var timeFactor: Double = 1.0 // set GameConfig.fps to 0 when timeFactor is set to 0
+    var timeFactor: Double = 1.0
         set(value) {
             if (value < 0) throw IllegalArgumentException("Time factor cannot be negative")
             field = value
