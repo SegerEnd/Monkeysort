@@ -94,3 +94,71 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
         }
     }
 }
+
+class CocktailShakerSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
+    private val totalCells = rows * cols
+    private var start = 0
+    private var end = totalCells - 1
+    private var currentIndex = 0
+    private var forward = true  // direction flag
+
+    override fun getNextTask(grid: GridModel): ShuffleTask? {
+        if (totalCells <= 1) return null
+
+        if (forward) {
+            // Forward pass
+            if (currentIndex >= end) {
+                forward = false
+                end--
+                currentIndex = end
+                if (start >= end) {
+                    // Reset indices to keep sorting continuously
+                    start = 0
+                    end = totalCells - 1
+                }
+                return null
+            }
+
+            val posA = Pos(currentIndex / cols, currentIndex % cols)
+            val posB = Pos((currentIndex + 1) / cols, (currentIndex + 1) % cols)
+
+            val fruitA = grid.get(posA)
+            val fruitB = grid.get(posB)
+
+            currentIndex++
+
+            if (fruitA != Fruit.EMPTY && fruitB != Fruit.EMPTY && fruitA.name > fruitB.name) {
+                // Swap needed
+                return ShuffleTask(posA, posB, fruitA)
+            }
+        } else {
+            // Backward pass
+            if (currentIndex <= start) {
+                forward = true
+                start++
+                currentIndex = start
+                if (start >= end) {
+                    // Reset indices to keep sorting continuously
+                    start = 0
+                    end = totalCells - 1
+                }
+                return null
+            }
+
+            val posA = Pos(currentIndex / cols, currentIndex % cols)
+            val posB = Pos((currentIndex - 1) / cols, (currentIndex - 1) % cols)
+
+            val fruitA = grid.get(posA)
+            val fruitB = grid.get(posB)
+
+            currentIndex--
+
+            if (fruitA != Fruit.EMPTY && fruitB != Fruit.EMPTY && fruitB.name > fruitA.name) {
+                // Swap needed
+                return ShuffleTask(posB, posA, fruitB)
+            }
+        }
+
+        return null
+    }
+}

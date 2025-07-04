@@ -39,28 +39,34 @@ object UIFactory {
                         controller.upgradeAllMonkeysToInsertionSort()
                     }
                 },
-                button("Debug: BogoSort all", id = "debugBogoButton") {
-                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
-                },
-                button("Debug: BubbleSort all", id = "debugBubbleButton") {
-                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
-                },
-                button("Debug: InsertionSort all", id = "debugInsertionButton") {
-                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.INSERTION }
-                },
-                button("Debug: Spawn 5 Monkeys", id = "debugSpawn5MonkeysButton") {
-                    repeat(5) {
-                        controller.monkeys.add(com.segerend.monkey.Monkey(SortAlgorithm.BOGO))
-                    }
-                },
-                button("Debug: Speed x5", id = "debugSpeedx5Button") {
-                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 5.0 else 1.0
-                },
-                button("Debug: Super Speed x100", id = "debugSuperSpeedButton") {
-                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100.0 else 1.0
-                },
+//                button("Debug: BogoSort all", id = "debugBogoButton") {
+//                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BOGO }
+//                },
+//                button("Debug: BubbleSort all", id = "debugBubbleButton") {
+//                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
+//                },
+//                button("Debug: InsertionSort all", id = "debugInsertionButton") {
+//                    controller.monkeys.forEach { it.algorithm = SortAlgorithm.INSERTION }
+//                },
+//                Button("Debug: CocktailSort all").apply {
+//                    id = "debugCocktailButton"
+//                    setOnAction {
+//                        controller.monkeys.forEach { it.algorithm = SortAlgorithm.COCKTAIL }
+//                    }
+//                },
+//                button("Debug: Spawn 5 Monkeys", id = "debugSpawn5MonkeysButton") {
+//                    repeat(5) {
+//                        controller.monkeys.add(com.segerend.monkey.Monkey(SortAlgorithm.BOGO))
+//                    }
+//                },
                 button("🗺️ Show Sort Chart", id = "chartButton") {
                     SortChartWindow.show(controller)
+                },
+                button("Speed x5", id = "speedx5Button") {
+                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 5.0 else 1.0
+                },
+                button("Speed x100", id = "speedx100Button") {
+                    GameStats.timeFactor = if (GameStats.timeFactor == 1.0) 100.0 else 1.0
                 },
                 pauseButton.apply {
                     id = "pauseButton"

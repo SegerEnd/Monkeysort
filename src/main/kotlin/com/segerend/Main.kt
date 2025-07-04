@@ -30,6 +30,9 @@ class MonkeySortSimulatorApp : Application() {
         primaryStage.setOnCloseRequest { javafx.application.Platform.exit() }
         primaryStage.show()
 
+        primaryStage.minWidth = primaryStage.width
+        primaryStage.minHeight = primaryStage.height
+
         primaryStage.iconifiedProperty().addListener { _, _, minimized -> isMinimizedOrHidden = minimized }
         primaryStage.showingProperty().addListener { _, _, showing -> isMinimizedOrHidden = !showing }
 

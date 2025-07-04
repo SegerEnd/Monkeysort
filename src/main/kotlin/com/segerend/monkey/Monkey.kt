@@ -28,9 +28,9 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
     var fruitBeingCarried: Fruit? = null
 
     private fun getSpeedPerTick(): Double = when (algorithm) {
-        SortAlgorithm.BOGO -> 1.0
         SortAlgorithm.BUBBLE -> 25.0
         SortAlgorithm.INSERTION -> 25.0
+        else -> 1.0
     }
 
     fun assignTask(task: ShuffleTask, cellSize: Double = GameConfig.CELL_SIZE): Boolean {
