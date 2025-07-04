@@ -63,16 +63,6 @@ class GameControllerTest {
         assertEquals(0, GameStats.coins, "Coins should not change when trying to buy a monkey with insufficient coins")
     }
 
-    //    fun upgradeMonkey(): Boolean {
-    //        if (GameStats.coins >= GameConfig.MONKEY_UPGRADE_COST) {
-    //            monkeys.firstOrNull { it.algorithm == SortAlgorithm.BOGO }?.let {
-    //                it.algorithm = SortAlgorithm.BUBBLE
-    //                GameStats.coins -= GameConfig.MONKEY_UPGRADE_COST
-    //                return true
-    //            }
-    //        }
-    //        return false
-    //    }
     @Test
     fun upgradeMonkey() {
         val monkey : Monkey = controller.monkeys.firstOrNull { it.algorithm == SortAlgorithm.BOGO }?.let {

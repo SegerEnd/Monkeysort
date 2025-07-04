@@ -30,6 +30,12 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         return (GameConfig.MONKEY_BASE_COST * monkeys.size * GameConfig.MONKEY_COST_INCREASE_FACTOR).toInt()
     }
 
+    fun getUpgradeAllFee(startFee: Int, algorithm: SortAlgorithm) : Int {
+        var algorithmMonkeys = monkeys.count { it.algorithm == algorithm }
+        var otherMonkeys = monkeys.size - algorithmMonkeys
+        return (startFee * (1 + 0.25 * otherMonkeys + 0.1 * algorithmMonkeys)).toInt()
+    }
+
     fun buyMonkey(): Boolean {
         val cost = getNewMonkeyPrice()
         if (GameStats.coins >= cost) {
@@ -40,14 +46,13 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         return false
     }
 
-    fun upgradeMonkey(): Boolean {
-        if (GameStats.coins >= GameConfig.MONKEY_UPGRADE_COST) {
-            monkeys.firstOrNull { it.algorithm == SortAlgorithm.BOGO }?.let {
-                it.algorithm = SortAlgorithm.BUBBLE
-                GameStats.coins -= GameConfig.MONKEY_UPGRADE_COST
-                return true
-            }
-        }
-        return false
+    fun upgradeAllMonkeysToBubbleSort() {
+        val upgradeFee = getUpgradeAllFee(
+            GameConfig.BUBBLE_SORT_ALL_START_FEE,
+            SortAlgorithm.BUBBLE
+        )
+        if (GameStats.coins < upgradeFee) return
+        GameStats.coins -= upgradeFee
+        monkeys.forEach { it.algorithm = SortAlgorithm.BUBBLE }
     }
 }

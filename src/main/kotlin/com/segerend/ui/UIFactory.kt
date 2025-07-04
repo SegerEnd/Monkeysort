@@ -25,9 +25,9 @@ object UIFactory {
                 },
                 upgradeButton.apply {
                     id = "upgradeButton"
-                    text = "🫧 Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)"
+                    text = "🫧 Upgrade All BubbleSort"
                     setOnAction {
-                        controller.upgradeMonkey()
+                        controller.upgradeAllMonkeysToBubbleSort()
                     }
                 },
                 button("Debug: BogoSort all", id = "debugBogoButton") {
@@ -73,8 +73,12 @@ object UIFactory {
         buyButton.text = "${GameConfig.DEFAULT_MONKEY} Buy Monkey (${controller.getNewMonkeyPrice()} coins)"
         buyButton.isDisable = GameStats.coins < controller.getNewMonkeyPrice() || controller.monkeys.size >= GameConfig.MAX_MONKEYS
 
-        upgradeButton.text = "🫧 Upgrade to BubbleSort (${GameConfig.MONKEY_UPGRADE_COST} coins)"
-        upgradeButton.isDisable = GameStats.coins < GameConfig.MONKEY_UPGRADE_COST || controller.monkeys.isEmpty()
+        val upgradeAllFee = controller.getUpgradeAllFee(
+            GameConfig.BUBBLE_SORT_ALL_START_FEE,
+            SortAlgorithm.BUBBLE
+        )
+        upgradeButton.text = "🫧 Upgrade All BubbleSort (${upgradeAllFee} fee)"
+        upgradeButton.isDisable = GameStats.coins < upgradeAllFee || controller.monkeys.count { it.algorithm != SortAlgorithm.BUBBLE } == 0
     }
 
     private fun button(text: String, id: String? = null, onClick: (Button) -> Unit): Button {
