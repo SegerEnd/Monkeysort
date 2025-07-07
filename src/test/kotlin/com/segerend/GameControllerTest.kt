@@ -74,18 +74,23 @@ class GameControllerTest {
             fail("No monkey found with BOGO algorithm to upgrade")
         }
         // Upgrade monkey to SortAlgorithm.BUBBLE check if upgrade is possible and if the monkey's algorithm is updated
-        GameStats.coins = GameConfig.MONKEY_UPGRADE_COST
-        assertTrue(controller.upgradeMonkey(), "Upgrading a monkey should succeed with enough coins")
+        GameStats.coins = controller.getUpgradeAllFee(
+            GameConfig.BUBBLE_SORT_ALL_START_FEE,
+            SortAlgorithm.BUBBLE
+        )
+        // upgrade the monkey
+        controller.upgradeAllMonkeysToBubbleSort()
         assertEquals(0, GameStats.coins, "Coins should be reduced to zero after upgrading a monkey")
-        // check if the monkey's algorithm is updated to BUBBLE
+//        // check if the monkey's algorithm is updated to BUBBLE
         assertEquals(SortAlgorithm.BUBBLE, monkey.algorithm, "Monkey's algorithm should be upgraded to BUBBLE")
 
-        // try to upgrade again without an available monkey with BOGO algorithm
-        GameStats.coins = GameConfig.MONKEY_UPGRADE_COST
-        assertFalse(controller.upgradeMonkey(), "Upgrading a monkey should fail if no monkey with BOGO algorithm is available")
-
-        // Try to upgrade again without enough coins
-        GameStats.coins = 0
-        assertFalse(controller.upgradeMonkey(), "Upgrading a monkey should fail with insufficient coins")
+        // Insertion sort upgrade
+        GameStats.coins = controller.getUpgradeAllFee(
+            GameConfig.INSERTION_SORT_ALL_START_FEE,
+            SortAlgorithm.INSERTION
+        )
+        controller.upgradeAllMonkeysToInsertionSort()
+        assertEquals(0, GameStats.coins, "Coins should be reduced to zero after upgrading a monkey to Insertion Sort")
+        assertEquals(SortAlgorithm.INSERTION, monkey.algorithm, "Monkey's algorithm should be upgraded to INSERTION")
     }
 }

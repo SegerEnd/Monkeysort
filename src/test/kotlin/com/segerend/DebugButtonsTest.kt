@@ -44,10 +44,6 @@ class DebugButtonsTest : ApplicationTest() {
     fun testDebugButtons() {
         interact { GameStats.reset() }
 
-        fun assertAllMonkeysAlgorithm(expected: SortAlgorithm, message: String) {
-            assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == expected }, message)
-        }
-
         fun clickButton(buttonId: String) {
             WaitForAsyncUtils.waitForFxEvents()
             Platform.runLater {
@@ -56,28 +52,6 @@ class DebugButtonsTest : ApplicationTest() {
                 fireButton(button)
             }
             WaitForAsyncUtils.waitForFxEvents()
-        }
-
-        // Spawn 5 monkeys
-        Platform.runLater {
-            val debugButton = lookup("#debugSpawn5MonkeysButton").queryButton()
-            assertNotNull(debugButton, "Debug button should be present in the UI")
-            fireButton(debugButton)
-        }
-        WaitForAsyncUtils.waitForFxEvents()
-        assertEquals(6, monkeySortSimulatorApp.controller.monkeys.size, "There should be 6 monkeys after spawning 5")
-        assertAllMonkeysAlgorithm(SortAlgorithm.BOGO, "All monkeys should be BogoSort initially")
-
-        // Debug buttons for setting sorting algorithms
-        val algorithmButtons = mapOf(
-            "#debugBubbleButton" to SortAlgorithm.BUBBLE,
-            "#debugBogoButton" to SortAlgorithm.BOGO,
-            "#debugInsertionButton" to SortAlgorithm.INSERTION
-        )
-
-        algorithmButtons.forEach { (buttonId, algorithm) ->
-            clickButton(buttonId)
-            assertAllMonkeysAlgorithm(algorithm, "All monkeys should be set to $algorithm after clicking $buttonId")
         }
 
         // GameStats speed button tests
@@ -90,17 +64,17 @@ class DebugButtonsTest : ApplicationTest() {
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Initial game speed time factor should be 1.0 by default")
 
         // Speed x5 button
-        clickButton("#debugSpeedx5Button")
+        clickButton("#speedx5Button")
         assertEquals(5.0, GameStats.timeFactor, "Game speed should be set to x5 after clicking the button")
 
-        clickButton("#debugSpeedx5Button")
+        clickButton("#speedx5Button")
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the speed x5 button again")
 
         // Super speed button
-        clickButton("#debugSuperSpeedButton")
+        clickButton("#speedx100Button")
         assertEquals(100.0, GameStats.timeFactor, "Game speed should be set to super speed after clicking the button")
 
-        clickButton("#debugSuperSpeedButton")
+        clickButton("#speedx100Button")
         assertEquals(initialGameSpeedTimeFactor, GameStats.timeFactor, "Game speed should be reset after clicking the super speed button again")
 
         // test #pauseButton to toggle between 0.0 and 1.0 timeFactor

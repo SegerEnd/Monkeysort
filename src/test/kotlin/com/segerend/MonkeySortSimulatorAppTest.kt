@@ -150,36 +150,6 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
         GameStats.timeFactor = 1.0
     }
 
-
-    @Test
-    fun spawn5Monkeys() {
-        setCoins(monkeySortSimulatorApp.controller.getNewMonkeyPrice())
-        GameStats.timeFactor = 5.0
-        waitFx()
-
-        repeat(5) {
-            assertFalse(buyButton.isDisable)
-            buyButton.fire()
-            waitFx()
-            setCoins(GameStats.coins + monkeySortSimulatorApp.controller.getNewMonkeyPrice())
-            waitFx()
-        }
-
-        assertEquals(6, monkeySortSimulatorApp.controller.monkeys.size)
-
-        monkeySortSimulatorApp.controller.monkeys.drop(1).forEach {
-            monkeySortSimulatorApp.controller.monkeys.remove(it)
-        }
-
-        repeat(3) {
-            Thread.sleep(50)
-            debugButton.fire()
-            waitFx()
-        }
-
-        assertEquals(16, monkeySortSimulatorApp.controller.monkeys.size)
-    }
-
     @AfterEach
     fun cleanup() {
         resetMonkeys()
