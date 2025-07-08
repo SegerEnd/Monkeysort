@@ -3,6 +3,7 @@ package com.segerend
 import javafx.scene.paint.Color
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.util.Locale
 
 class UtilsTest {
     @Test
@@ -33,5 +34,21 @@ class UtilsTest {
         GameStats.reset()
         assertEquals(50, GameStats.coins, "GameStats should reset coins to 50 starter money")
         assertEquals(1.0, GameStats.timeFactor, "GameStats speed timeFactor should reset to 1.0")
+    }
+
+    @Test
+    fun `test formatWithDots`() {
+        val number = 12345
+        val formatted = number.formatWithDots()
+        // NL locale is expected
+        if (Locale.getDefault() == Locale.of("nl", "NL")) {
+            assertEquals("12.345", formatted, "Number should be formatted with dots for thousands")
+        } else {
+            assertEquals("12,345", formatted, "Number should be formatted with commas for thousands")
+        }
+
+        val smallNumber = 9999
+        val smallFormatted = smallNumber.formatWithDots()
+        assertEquals("9999", smallFormatted, "Small numbers should not be formatted with dots")
     }
 }

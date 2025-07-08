@@ -99,6 +99,14 @@ class MonkeySortSimulatorAppTest : ApplicationTest() {
             controller.gridModel.fill(Fruit.EMPTY)
         }
 
+        repeat(50) {
+            monkeySortSimulatorApp.controller.monkeys.add(
+                Monkey(SortAlgorithm.BUBBLE).apply {
+                    state = IdleState(0.0, 0.0)
+                }
+            )
+        }
+
         waitFx()
 
         // Ensure grid is empty

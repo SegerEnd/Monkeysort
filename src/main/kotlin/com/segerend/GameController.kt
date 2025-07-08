@@ -55,7 +55,7 @@ class GameController(rows: Int = GameConfig.ROWS, cols: Int = GameConfig.COLS) {
         if (GameStats.coins < upgradeFee) return
         GameStats.coins -= upgradeFee
         monkeys.forEach {
-            if (it.algorithm != algorithm || it.state is DancingState || it.state is ChattingState) {
+            if (it.algorithm != algorithm ) {
                 it.algorithm = algorithm
             }
         }

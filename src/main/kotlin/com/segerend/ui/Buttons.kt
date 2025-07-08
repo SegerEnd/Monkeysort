@@ -83,7 +83,7 @@ object Buttons {
         upgradeInsertionButton.isDisable = GameStats.coins < upgradeAllFee || controller.monkeys.count { it.algorithm != SortAlgorithm.INSERTION } == 0
     }
 
-    private fun button(text: String, id: String? = null, onClick: (Button) -> Unit): Button {
+    private fun button(text: String, id: String, onClick: (Button) -> Unit): Button {
         return Button(text).apply {
             if (id != null) this.id = id
             setOnAction { onClick(this) }

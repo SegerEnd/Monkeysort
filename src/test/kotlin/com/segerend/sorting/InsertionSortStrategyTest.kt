@@ -115,4 +115,30 @@ class InsertionSortStrategyTest {
     fun getCols() {
         assertEquals(testCols, strategy.cols, "getCols should return the number of columns set in the constructor")
     }
+
+    @Test
+    fun `test multiple calls on sorted grid covers reset`() {
+        val strategy = InsertionSortStrategy(1, 3)
+        val grid = GridModel(1, 3)
+        grid.set(Pos(0, 0), Fruit.APPLE)
+        grid.set(Pos(0, 1), Fruit.BANANA)
+        grid.set(Pos(0, 2), Fruit.CHERRY)
+
+        // Call getNextTask multiple times to ensure it loops and resets
+        repeat(5) {
+            assertNull(strategy.getNextTask(grid), "Should return null on sorted grid, iteration $it")
+        }
+    }
+
+    @Test
+    fun `test handling of empty cells`() {
+        val strategy = InsertionSortStrategy(1, 3)
+        val grid = GridModel(1, 3)
+        grid.set(Pos(0, 0), Fruit.BANANA)
+        grid.set(Pos(0, 1), Fruit.EMPTY)
+        grid.set(Pos(0, 2), Fruit.APPLE)
+
+        val task = strategy.getNextTask(grid)
+        assertNull(task, "Should return null when comparing with EMPTY cell")
+    }
 }

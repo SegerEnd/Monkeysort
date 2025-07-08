@@ -12,7 +12,7 @@ import kotlin.random.Random
 // --- Monkey States ---
 
 interface MonkeyState {
-    fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem)
+    fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {}
     fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double)
     fun getDrawPosition(): Pair<Double, Double>
 }
@@ -23,11 +23,6 @@ abstract class ProgressState : MonkeyState {
     protected var startY = 0.0
     protected var endX = 0.0
     protected var endY = 0.0
-
-    // Progress is now handled by Monkey, so update does nothing
-    override fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {
-        // Empty, as progress is managed by Monkey
-    }
 
     abstract fun onProgressComplete(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem)
 
@@ -128,7 +123,7 @@ class WanderingState(startX: Double, startY: Double, cellSize: Double) : Progres
         pickNewTarget(cellSize)
     }
 
-    private fun pickNewTarget(cellSize: Double = GameConfig.CELL_SIZE) {
+    private fun pickNewTarget(cellSize: Double) {
         val wanderRadius = GameConfig.MONKEY_WANDER_RADIUS_FACTOR * cellSize
         endX = startX + Random.nextDouble(-wanderRadius, wanderRadius)
         endY = startY + Random.nextDouble(-wanderRadius, wanderRadius)

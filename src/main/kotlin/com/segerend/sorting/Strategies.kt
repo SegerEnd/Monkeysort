@@ -65,10 +65,6 @@ class InsertionSortStrategy(val rows: Int, val cols: Int) : SortStrategy {
         if (compareIndex <= 0) {
             currentIndex++
             compareIndex = currentIndex
-            if (currentIndex >= totalCells) {
-                currentIndex = 1
-                compareIndex = currentIndex
-            }
         }
 
         val indexA = compareIndex - 1

@@ -82,6 +82,21 @@ class DebugButtonsTest : ApplicationTest() {
         assertEquals(0.0, GameStats.timeFactor, "Game speed should be paused (0.0) after clicking the pause button")
         clickButton("#pauseButton")
         assertEquals(1.0, GameStats.timeFactor, "Game speed should be resumed (1.0) after clicking the pause button again")
+
+        // give alot of money to buy upgrades
+        interact { GameStats.coins = 1000000 }
+        WaitForAsyncUtils.waitForFxEvents()
+        // pres #upgradeBubbleButton
+        clickButton("#upgradeBubbleButton")
+        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.BUBBLE },
+            "All monkeys should be upgraded to BubbleSort after clicking the upgrade button")
+
+        // test #upgradeInsertionButton
+        clickButton("#upgradeInsertionButton")
+        assertTrue(monkeySortSimulatorApp.controller.monkeys.all { it.algorithm == SortAlgorithm.INSERTION },
+            "All monkeys should be upgraded to InsertionSort after clicking the upgrade button")
+
+        interact { GameStats.coins = 0 }
     }
 
     @AfterEach
