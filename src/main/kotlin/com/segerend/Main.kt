@@ -1,6 +1,6 @@
 package com.segerend
 
-import com.segerend.ui.UIFactory
+import com.segerend.ui.Buttons
 import com.segerend.ui.GameRenderer
 import javafx.animation.AnimationTimer
 import javafx.application.Application
@@ -22,7 +22,7 @@ class MonkeySortSimulatorApp : Application() {
 
     override fun start(primaryStage: Stage) {
         root.center = canvas
-        root.bottom = UIFactory.createButtonPanel(controller)
+        root.bottom = Buttons.createButtonPanel(controller)
 
         primaryStage.title = "Monkeysort 🐒"
         val scene = Scene(root)
@@ -66,7 +66,7 @@ class MonkeySortSimulatorApp : Application() {
 
             if (now - lastRender >= nsPerUpdate) {
                 renderer.draw(FrameTime(accumulator / 1_000_000.0, now / 1_000_000_000.0))
-                UIFactory.updateButtons(controller)
+                Buttons.updateButtons(controller)
                 lastRender = now
             }
         }

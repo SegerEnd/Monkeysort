@@ -8,17 +8,14 @@ import javafx.scene.paint.Color
 import kotlin.math.*
 import kotlin.random.Random
 
-interface Updatable {
+interface UpdatableRenderable {
     fun update(deltaMs: Long)
+    fun render(gc: GraphicsContext, cellSize: Double)
     val isAlive: Boolean
 }
 
-interface Renderable {
-    fun render(gc: GraphicsContext, cellSize: Double)
-}
-
-interface ParticleEffect : Updatable, Renderable
-interface Particle : Updatable, Renderable
+interface ParticleEffect : UpdatableRenderable
+interface Particle : UpdatableRenderable
 
 class ParticleSystem {
     private val _effects = mutableListOf<ParticleEffect>()

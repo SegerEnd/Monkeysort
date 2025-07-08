@@ -5,7 +5,7 @@ import com.segerend.sorting.SortAlgorithm
 import javafx.scene.control.Button
 import javafx.scene.layout.FlowPane
 
-object UIFactory {
+object Buttons {
     lateinit var buyButton: Button
     lateinit var upgradeBubbleButton: Button
     lateinit var upgradeInsertionButton: Button

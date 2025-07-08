@@ -11,7 +11,7 @@ class GameControllerTest {
 
     @BeforeEach
     fun setUp() {
-        controller = GameController() // it should automatically use GameConfig.COLS and GameConfig.ROWS
+        controller = GameController()
         GameStats.coins = 0 // Reset coins
     }
 
@@ -81,7 +81,6 @@ class GameControllerTest {
         // upgrade the monkey
         controller.upgradeAllMonkeysToBubbleSort()
         assertEquals(0, GameStats.coins, "Coins should be reduced to zero after upgrading a monkey")
-//        // check if the monkey's algorithm is updated to BUBBLE
         assertEquals(SortAlgorithm.BUBBLE, monkey.algorithm, "Monkey's algorithm should be upgraded to BUBBLE")
 
         // Insertion sort upgrade
