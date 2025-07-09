@@ -1,18 +1,24 @@
-package com.segerend
+package com.segerend.ui
 
+import com.segerend.Fruit
+import com.segerend.GameController
+import com.segerend.toRgbString
 import javafx.application.Platform
+import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.geometry.Side
 import javafx.scene.Scene
-import javafx.scene.chart.*
-import javafx.scene.layout.BorderPane
-import javafx.stage.Stage
+import javafx.scene.chart.BarChart
+import javafx.scene.chart.CategoryAxis
+import javafx.scene.chart.NumberAxis
+import javafx.scene.chart.XYChart
 import javafx.scene.control.Button
-import javafx.geometry.Pos
+import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
-import javafx.geometry.Insets
-import kotlin.concurrent.fixedRateTimer
+import javafx.stage.Stage
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.concurrent.fixedRateTimer
 
 class SortChartWindow internal constructor(private val controller: GameController) {
     val stage = Stage()

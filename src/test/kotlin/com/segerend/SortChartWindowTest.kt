@@ -1,5 +1,6 @@
 package com.segerend
 
+import com.segerend.ui.SortChartWindow
 import javafx.application.Platform
 import javafx.scene.control.Button
 import javafx.stage.Stage

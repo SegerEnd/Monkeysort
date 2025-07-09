@@ -1,6 +1,5 @@
 package com.segerend.sorting
 
-import com.segerend.GameConfig
 import com.segerend.GridModel
 import com.segerend.monkey.ShuffleTask
 

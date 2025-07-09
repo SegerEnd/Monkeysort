@@ -85,7 +85,7 @@ object Buttons {
 
     private fun button(text: String, id: String, onClick: (Button) -> Unit): Button {
         return Button(text).apply {
-            if (id != null) this.id = id
+            this.id = id
             setOnAction { onClick(this) }
         }
     }

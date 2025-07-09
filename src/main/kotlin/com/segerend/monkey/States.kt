@@ -9,8 +9,6 @@ import com.segerend.particles.*
 import javafx.scene.canvas.GraphicsContext
 import kotlin.random.Random
 
-// --- Monkey States ---
-
 interface MonkeyState {
     fun update(monkey: Monkey, grid: GridModel, cellSize: Double, particleSystem: ParticleSystem) {}
     fun draw(gc: GraphicsContext, monkey: Monkey, cellSize: Double)

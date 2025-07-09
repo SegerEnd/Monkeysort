@@ -6,8 +6,6 @@ import com.segerend.Pos
 import com.segerend.monkey.ShuffleTask
 import kotlin.random.Random
 
-// --- Sorting Strategies ---
-
 class BogoSortStrategy : SortStrategy {
     override fun getNextTask(grid: GridModel): ShuffleTask? {
         val from = Pos(Random.nextInt(grid.rows), Random.nextInt(grid.cols))
