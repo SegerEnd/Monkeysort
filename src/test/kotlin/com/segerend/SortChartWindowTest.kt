@@ -65,8 +65,6 @@ class SortChartWindowTest : ApplicationTest() {
         WaitForAsyncUtils.waitForFxEvents()
         Thread.sleep(100)
 
-        // check if user has accesibility settings enabled on macbook for clickOn
-
         val chartButton = lookup("#chartButton").queryButton()
         assertNotNull(chartButton, "Chart button should not be null")
         assertTrue(chartButton.isVisible, "Chart button should be visible")
