@@ -1,12 +1,12 @@
 # Monkeysort Simulator 🐒
 
-Een chaotisch, grappig spel geschreven in **Kotlin** met **JavaFX**, waarin apen proberen fruit te sorteren.
+Een chaotisch, grappig spel over sorteren geschreven in **Kotlin** met **JavaFX**, waarin apen fruit sorteren.
 
 ---
 
 ## 🧠 Over het spel
 
-**Monkeysort Simulator** is een simulatiespel waarin een 2D-raster gevuld met fruit willekeurig wordt gesorteerd door een of meer apen. In eerste instantie gebruiken de apen de meest inefficiënte sorteermethode die er is: **Bogosort** (ook wel bekend als "Monkeysort"). Naarmate je voortgang boekt en munten verzamelt, kun je upgrades kopen zoals slimmere algoritmes en extra apen om je te helpen.
+**Monkeysort Simulator** is een simulatiespel waarin een 2D-raster gevuld met fruit, waar je aapjes aan het werk zet om het grid te sorteren. In eerste instantie gebruiken de apen de meest inefficiënte sorteermethode die er is: **Bogosort** (ook wel bekend als "Monkeysort"). Naarmate je voortgang boekt en munten verzamelt, kun je upgrades kopen zoals slimmere algoritmes en extra apen om je te helpen.
 
 MacOS:
 
@@ -16,17 +16,17 @@ MacOS:
 
 ## 🎮 Gameplay Functionaliteit
 
-- ✅ 2D-raster (standaard: **25x25**) gevuld met fruitemojis zoals: 🍎🍌🍇🍊🍉  
-- ✅ Start met **Bogosort**: fruit wordt willekeurig gehusseld tot het alfabetisch is gesorteerd (links naar rechts, boven naar onder).
-- ✅ Na elke game-tick:
-  - ✔️ Controle of het fruit alfabetisch gesorteerd is
-  - ✔️ Detectie van **3-of-meer-op-een-rij** fruitcombinaties (horizontaal of verticaal)
-  - ✔️ Toekennen van munten voor combinaties
-- ✅ **Upgrade systeem**:
+- 2D-raster (standaard: **25x25**) gevuld met fruitemojis zoals: 🍎🍌🍇🍊🍉  
+- Start met **Bogosort**: fruit wordt willekeurig gehusseld tot het alfabetisch is gesorteerd (links naar rechts, boven naar onder).
+- Na elke game-tick:
+  - Controle of het fruit alfabetisch gesorteerd is
+  - Detectie van **3-of-meer-op-een-rij** fruitcombinaties (horizontaal of verticaal)
+  - Toekennen van munten voor combinaties
+- **Upgrade systeem**:
   - 🧠 Ontgrendel betere sorteeralgoritmes (zoals Bubble Sort en Insertion Sort)
   - 🐵 Koop meer apen voor asynchrone sorting en snellere voortgang
-- ✅ Game-tick loop: elke tick voert een shuffle uit, controleert sorteerstatus en verwerkt combinaties
-- ✅ Modulaire code, klaar om uit te breiden
+- Game-tick loop: elke tick voert een shuffle uit, controleert sorteerstatus en verwerkt combinaties
+- Modulaire code, klaar om uit te breiden
 - 🎨 UI met JavaFX en animaties
 
 ---
@@ -78,7 +78,11 @@ Voor de geschreven testen met JUnit en TestFX kun je de volgende opdracht gebrui
 ./gradlew test
 ```
 
-De testresultaten worden door JaCoCo gegenereerd en opgeslagen in de `build/jacoco/test/html/index.html` directory. Als alles goed is zou de test coverage boven de 90% zijn.
+De testresultaten worden door JaCoCo gegenereerd en opgeslagen in de `build/jacoco/test/html/index.html` directory. Als alles goed word uitgevoerd zou de test coverage boven de 90% zijn.
+
+Test op: 12-juli-2025 - MacBook Pro - Sequoia 15.5
+
+<img width="532" height="245" alt="Scherm­afbeelding 2025-07-12 om 22 49 45" src="https://github.com/user-attachments/assets/81eb9791-276e-4c08-a3f4-40dacfce8687" />
 
 ---
 
@@ -101,14 +105,7 @@ De testresultaten worden door JaCoCo gegenereerd en opgeslagen in de `build/jaco
 
 ---
 
-## 🚀 Mogelijke toekomstige uitbreidingen
-
-- 🎶 Geluidseffecten en muziek
-- 🧩 Nieuwe sorteer-algoritmes
-- 🌍 Online leaderboard
-- 👾 Pixel-art apen en fruit (nu emoji's)
-
----
+## Showcase video
 
 https://github.com/user-attachments/assets/e41a6c5f-7622-4c42-a339-757f20780e21
 
