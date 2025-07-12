@@ -8,6 +8,10 @@ Een chaotisch, grappig spel geschreven in **Kotlin** met **JavaFX**, waarin apen
 
 **Monkeysort Simulator** is een simulatiespel waarin een 2D-raster gevuld met fruit willekeurig wordt gesorteerd door een of meer apen. In eerste instantie gebruiken de apen de meest inefficiënte sorteermethode die er is: **Bogosort** (ook wel bekend als "Monkeysort"). Naarmate je voortgang boekt en munten verzamelt, kun je upgrades kopen zoals slimmere algoritmes en extra apen om je te helpen.
 
+MacOS:
+
+<img width="300" alt="Scherm­afbeelding 2025-07-12 om 10 07 38" src="https://github.com/user-attachments/assets/f5b80b43-143a-4bf5-92ff-35287764fa05" />
+
 ---
 
 ## 🎮 Gameplay Functionaliteit
