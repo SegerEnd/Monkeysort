@@ -110,4 +110,6 @@ De testresultaten worden door JaCoCo gegenereerd en opgeslagen in de `build/jaco
 
 ---
 
+https://github.com/user-attachments/assets/e41a6c5f-7622-4c42-a339-757f20780e21
+
 Veel plezier met de apen te laten sorteren! 🐒💥🍇
