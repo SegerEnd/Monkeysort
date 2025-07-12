@@ -71,6 +71,27 @@ Gebruik dit commando om de app te compileren en starten (zonder bundling):
 
 ---
 
+### Testen
+Voor de geschreven testen met JUnit en TestFX kun je de volgende opdracht gebruiken:
+
+```bash
+./gradlew test
+```
+
+De testresultaten worden door JaCoCo gegenereerd en opgeslagen in de `build/jacoco/test/html/index.html` directory. Als alles goed is zou de test coverage boven de 90% zijn.
+
+---
+
+### 📦 Project Dependencies
+- Kotlin
+- JavaFX
+- JUnit 5
+- TestFX
+- JaCoCo
+- Gradle
+
+---
+
 ## 📁 Structuur
 
 - `src/main/kotlin/com/segerend`: Broncode van het spel
