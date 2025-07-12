@@ -59,7 +59,6 @@ class Monkey(algorithm: SortAlgorithm = SortAlgorithm.BOGO) {
                 }
             }
         } else {
-            // For non-ProgressState, call update once per tick
             state.update(this, grid, cellSize, particleSystem)
         }
     }

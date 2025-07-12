@@ -47,10 +47,7 @@ class SortChartWindowTest : ApplicationTest() {
         }
         WaitForAsyncUtils.waitForFxEvents()
         LockManager.clear()
-
-
     }
-
 
     @Test
     fun openSortChartWindow() {

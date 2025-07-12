@@ -8,9 +8,7 @@ object GameConfig {
     const val MAX_MONKEYS = 150
     const val MONKEY_COST_INCREASE_FACTOR = 1.1 // 10% increase per monkey
 
-    // Number of monkeys upgraded to BubbleSort to unlock "BubbleSort All" button
     const val BUBBLE_SORT_ALL_START_FEE = 750
-    // number of monkeys needed to unlock InsertionSort
     const val INSERTION_SORT_ALL_START_FEE = 1500
 
     const val MONKEY_WANDER_RADIUS_FACTOR = 4.0

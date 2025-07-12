@@ -43,8 +43,8 @@ class MonkeySortSimulatorApp : Application() {
         private var lastUpdate = System.nanoTime()
         private var lastRender = System.nanoTime()
         private var targetFPS = GameConfig.fps
-        private var nsPerUpdate = 1_000_000_000L / targetFPS
-        private var accumulator = 0L
+        private var nsPerUpdate = 1_000_000_000L / targetFPS // Nanoseconds per update based on target FPS
+        private var accumulator = 0L // Accumulator means how much time has passed since the last update
 
         override fun handle(now: Long) {
             if (GameStats.timeFactor == 0.0) return

@@ -1,8 +1,6 @@
 package com.segerend.particles
 
-import com.segerend.GameStats
 import com.segerend.Pos
-
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.paint.Color
 import kotlin.math.*
