@@ -1,4 +1,4 @@
-# Monkeysort Simulator 🐒
+# Monkeysort 🐒
 
 Een chaotisch, grappig spel over sorteren geschreven in **Kotlin** met **JavaFX**, waarin apen fruit sorteren.
 
@@ -6,7 +6,7 @@ Een chaotisch, grappig spel over sorteren geschreven in **Kotlin** met **JavaFX*
 
 ## 🧠 Over het spel
 
-**Monkeysort Simulator** is een simulatiespel waarin een 2D-raster gevuld met fruit, waar je aapjes aan het werk zet om het grid te sorteren. In eerste instantie gebruiken de apen de meest inefficiënte sorteermethode die er is: **Bogosort** (ook wel bekend als "Monkeysort"). Naarmate je voortgang boekt en munten verzamelt, kun je upgrades kopen zoals slimmere algoritmes en extra apen om je te helpen.
+**Monkeysort** is een simulatiespel waarin een 2D-raster gevuld met fruit, waar je aapjes aan het werk zet om het grid te sorteren. In eerste instantie gebruiken de apen de meest inefficiënte sorteermethode die er is: **Bogosort** (ook wel bekend als "Monkeysort"). Naarmate je voortgang boekt en munten verzamelt, kun je upgrades kopen zoals slimmere algoritmes en extra apen om je te helpen.
 
 MacOS:
 
@@ -16,12 +16,12 @@ MacOS:
 
 ## 🎮 Gameplay Functionaliteit
 
-- 2D-raster (standaard: **25x25**) gevuld met fruitemojis zoals: 🍎🍌🍇🍊🍉  
-- Start met **Bogosort**: fruit wordt willekeurig gehusseld tot het alfabetisch is gesorteerd (links naar rechts, boven naar onder).
+- 2D-raster (standaard: **25x25**) gevuld met fruit emoji's
+- Start met **Bogosort**: fruit wordt willekeurig gehusseld.
 - Na elke game-tick:
   - Controle of het fruit alfabetisch gesorteerd is
-  - Detectie van **3-of-meer-op-een-rij** fruitcombinaties (horizontaal of verticaal)
-  - Toekennen van munten voor combinaties
+  - Detectie van combo's **3-of-meer-op-een-rij** fruitcombinaties (horizontaal of verticaal)
+  - Verkijgen van munten voor combo's
 - **Upgrade systeem**:
   - 🧠 Ontgrendel betere sorteeralgoritmes (zoals Bubble Sort en Insertion Sort)
   - 🐵 Koop meer apen voor asynchrone sorting en snellere voortgang
@@ -40,6 +40,7 @@ Dit project gebruikt **Gradle** voor de build en uitvoering van de applicatie.
 - Java 17+
 - Kotlin
 - JavaFX (zou automatisch moeten worden opgehaald via Gradle)
+- Mac of Windows
 
 ---
 
